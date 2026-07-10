@@ -1,0 +1,38 @@
+@startuml
+!define PRIMARY_KEY (PK)
+!define FOREIGN_KEY (FK)
+
+class Person <<Entity>> {
+  + id (PK)
+  + type
+  + first_name
+  + last_name
+  + created_at
+}
+
+class Student <<Entity>> {
+  + id (PK)
+  + major
+  + advisor_id (FK)
+}
+
+class Teacher <<Entity>> {
+  + id (PK)
+  + department
+}
+
+class Course <<Entity>> {
+  + id (PK)
+  + code
+  + title
+  + teacher_id (FK)
+}
+
+Person <|-- Student
+Person <|-- Teacher
+
+Student --* Course : enrolled in
+Teacher --* Course : teaches
+Teacher --* Student : advises
+
+@enduml

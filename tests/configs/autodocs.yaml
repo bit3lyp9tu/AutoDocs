@@ -1,0 +1,36 @@
+llm_service:
+  api:
+    base_url: 'https://llm.scads.ai/v1'
+    # key_value: ''
+    key_location: '~/.llm_key'
+    request_delay_seconds: 3
+autodocs:
+  plantuml:
+    renderer_path: 'resources/plantuml.jar'
+    auto_render: true
+  valid_diagrams:
+    umls: [
+      "Sequence diagram",
+      "Usecase diagram",
+      "Class diagram",
+      "Object diagram",
+      "Activity diagram",
+      "Component diagram",
+      "Deployment diagram",
+      "State diagram",
+      "Timing diagram"
+    ]
+    non_umls: [
+      "Network diagram (nwdiag)",
+      "Wireframe graphical interface (Salt)",
+      "Specification and Description Language (SDL)",
+      "Ditaa diagram",
+      "Gantt diagram",
+      "MindMap diagram",
+      "Work Breakdown Structure diagram",
+      "Entity Relationship diagram"
+    ]
+  sysprompt:
+    file_path: 'tests/configs/autodocs-prompt.md'
+    # content: ''
+# git:

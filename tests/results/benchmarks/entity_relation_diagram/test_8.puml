@@ -1,0 +1,66 @@
+@startuml
+' Define base class
+class Person {
+    +id: int
+    +type: str
+    +first_name: str
+    +last_name: str
+    +created_at: datetime
+}
+
+' Student inherits from Person
+class Student {
+    +id: int
+    +major: str
+    +advisor_id: int (nullable)
+    +advisor: Teacher (optional)
+    +courses: List<Course>
+}
+
+' Teacher inherits from Person
+class Teacher {
+    +id: int
+    +department: str
+    +students: List<Student>
+    +courses: List<Course>
+}
+
+' Course class
+class Course {
+    +id: int
+    +code: str (unique)
+    +title: str
+    +teacher_id: int
+    +teacher: Teacher
+    +students: List<Student>
+}
+
+' Association table (many-to-many)
+class StudentCourse {
+    +student_id: int (PK)
+    +course_id: int (PK)
+}
+
+' Relationships
+Person <|-- Student
+Person <|-- Teacher
+Student "1" -- "*" Course : courses (via StudentCourse)
+Teacher "1" -- "*" Course : courses
+Course "1" -- "*" Student : students (via StudentCourse)
+Teacher "1" -- "*" Student : students (via advisor)
+
+' Polymorphism indicator
+note right of Person
+    Polymorphic base class
+    type field determines subtype
+end note
+
+note right of Student
+    type = "student"
+end note
+
+note right of Teacher
+    type = "teacher"
+end note
+
+@enduml

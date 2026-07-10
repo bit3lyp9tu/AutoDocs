@@ -1,0 +1,33 @@
+@startuml
+class Animal {
+    {static} + kingdom : String = "Animalia"
+    + name : String
+    + age : int
+    + Animal(name, age)
+    + speak() : String
+    + info() : String
+}
+
+class Dog {
+    + breed : String
+    + Dog(name, age, breed)
+    + speak() : String
+    + fetch() : String
+}
+
+class Cat {
+    + indoor : boolean
+    + Cat(name, age, indoor)
+    + speak() : String
+}
+
+class GuideDog {
+    + owner : String
+    + GuideDog(name, age, breed, owner)
+    + guide() : String
+}
+
+Animal <|-- Dog
+Animal <|-- Cat
+Dog <|-- GuideDog
+@enduml

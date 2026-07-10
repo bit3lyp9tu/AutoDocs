@@ -1,0 +1,50 @@
+@startuml
+' Define classes
+class Animal {
+  +str kingdom: "Animalia"
+  +__init__(name: str, age: int)
+  +speak() -> str
+  +info() -> str
+}
+
+class Dog <|-- Animal {
+  +__init__(name: str, age: int, breed: str)
+  +speak() -> str
+  +fetch() -> str
+}
+
+class Cat <|-- Animal {
+  +__init__(name: str, age: int, indoor: bool)
+  +speak() -> str
+}
+
+class GuideDog <|-- Dog {
+  +__init__(name: str, age: int, breed: str, owner: str)
+  +guide() -> str
+}
+
+' Show inheritance and relationships
+' Animal is superclass, Dog and Cat inherit from it
+' GuideDog inherits from Dog
+
+' Add attributes shown in __init__ as instance attributes
+' (PlantUML doesn't show instance attributes in class diagrams by default unless specified)
+' But we can show them as note or in class body for clarity
+
+note right of Animal
+  kingdom = "Animalia" (class attribute)
+end note
+
+note right of Dog
+  breed (instance attribute)
+end note
+
+note right of Cat
+  indoor (instance attribute)
+end note
+
+note right of GuideDog
+  owner (instance attribute)
+end note
+
+@enduml

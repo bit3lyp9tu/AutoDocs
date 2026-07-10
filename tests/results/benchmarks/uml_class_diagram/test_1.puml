@@ -1,0 +1,22 @@
+@startuml
+class Animal {
+  +kingdom: String
+  +name: String
+  +age: Integer
+  +speak(): String
+  +info(): String
+}
+class Dog inherits Animal {
+  +breed: String
+  +speak(): String
+  +fetch(): String
+}
+class Cat inherits Animal {
+  +indoor: Boolean
+  +speak(): String
+}
+class GuideDog inherits Dog {
+  +owner: String
+  +guide(): String
+}
+@enduml

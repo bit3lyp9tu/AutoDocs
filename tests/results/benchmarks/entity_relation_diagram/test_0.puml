@@ -1,0 +1,50 @@
+@startuml
+!theme plain
+skinparam Linetype ortho
+
+entity "Person" as person {
+    * id : int <<PK>>
+    --
+    type : string(20)
+    first_name : string(50)
+    last_name : string(50)
+    created_at : datetime
+}
+
+entity "Student" as student {
+    * id : int <<PK>> <<FK>>
+    --
+    major : string(100)
+    advisor_id : int <<FK>>
+}
+
+entity "Teacher" as teacher {
+    * id : int <<PK>> <<FK>>
+    --
+    department : string(100)
+}
+
+entity "Course" as course {
+    * id : int <<PK>>
+    --
+    code : string(10) <<unique>>
+    title : string(100)
+    teacher_id : int <<FK>>
+}
+
+entity "student_course" as student_course {
+    * student_id : int <<PK>> <<FK>>
+    * course_id : int <<PK>> <<FK>>
+}
+
+' Inheritance (Joined Table)
+person <|-- student
+person <|-- teacher
+
+' Relationships
+teacher "1" -- "0..*" student : advises
+teacher "1" -- "0..*" course : teaches
+student "0..*" -- "0..*" course : enrolls
+(student, course) .. student_course
+
+@enduml

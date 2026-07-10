@@ -1,0 +1,29 @@
+@startuml
+class Animal {
+  - kingdom: str
+  - name: str
+  - age: int
+  + speak(): str
+  + info(): str
+}
+
+class Dog {
+  - breed: str
+  + speak(): str
+  + fetch(): str
+}
+
+class Cat {
+  - indoor: bool
+  + speak(): str
+}
+
+class GuideDog {
+  - owner: str
+  + guide(): str
+}
+
+Animal <|-- Dog
+Animal <|-- Cat
+Dog <|-- GuideDog
+@enduml

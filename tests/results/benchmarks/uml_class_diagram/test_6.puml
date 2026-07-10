@@ -1,0 +1,36 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Animal {
+    {static} +kingdom : String = "Animalia"
+    +name : String
+    +age : int
+    +Animal(name: String, age: int)
+    +speak() : String
+    +info() : String
+}
+
+class Dog {
+    +breed : String
+    +Dog(name: String, age: int, breed: String)
+    +speak() : String
+    +fetch() : String
+}
+
+class Cat {
+    +indoor : boolean
+    +Cat(name: String, age: int, indoor: boolean)
+    +speak() : String
+}
+
+class GuideDog {
+    +owner : String
+    +GuideDog(name: String, age: int, breed: String, owner: String)
+    +guide() : String
+}
+
+Animal <|-- Dog
+Animal <|-- Cat
+Dog <|-- GuideDog
+
+@enduml

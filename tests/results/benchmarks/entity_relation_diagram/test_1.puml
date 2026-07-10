@@ -1,0 +1,28 @@
+@startuml
+
+participant "Person" as Person
+participant "Student" as Student
+participant "Teacher" as Teacher
+participant "Course" as Course
+
+database "student_course" {
+  -- Many-to-many association table
+  student_id (FK) -> Person.id
+  course_id (FK) -> Course.id
+}
+
+Person --|> Student
+Person --|> Teacher
+
+Student -- "student_course" : many_to_many
+Teacher -- "student_course" : many_to_many
+Course -- "student_course" : many_to_many
+
+Student -- Teacher : one_to_one (advisor)
+Teacher -- Student : one_to_many (students)
+
+Student -- Course : many_to_many
+Course -- Student : many_to_many
+Course -- Teacher : one_to_one (teacher)
+
+@enduml
