@@ -13,9 +13,7 @@ def main():
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
     if yaml.config.git.commit.allow_auto_msg:
-
         git_diff = GitMaster(yaml.config).diff()
-        print(git_diff)
 
         api = LLM_API(config=yaml.config, model="openGPT-X/Teuken-7B-instruct-v0.6")
 
@@ -30,7 +28,7 @@ def main():
 
         if yaml.config.git.commit.vim_examination:
             msg = TerminalMaster(config=yaml.config).openVIM(result)
-            # print(msg)
+            print(msg)
             message_file.write_text(msg, encoding="utf-8")
         else:
             message_file.write_text(result, encoding="utf-8")
