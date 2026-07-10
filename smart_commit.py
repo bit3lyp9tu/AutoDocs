@@ -8,6 +8,8 @@ from src.terminal_master import TerminalMaster
 
 
 def main():
+    print("Autogenerate commit message")
+
     message_file = Path(sys.argv[1])
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
@@ -26,6 +28,9 @@ def main():
         except ValueError as err:
             print(err)
 
-        msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
-        # print(msg)
-        message_file.write_text(msg, encoding="utf-8")
+        if yaml.config.git.commit.vim_examination:
+            msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
+            # print(msg)
+            message_file.write_text(msg, encoding="utf-8")
+        else:
+            message_file.write_text(git_diff, encoding="utf-8")
