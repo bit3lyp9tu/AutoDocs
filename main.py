@@ -28,8 +28,6 @@ def main():
     # source = "tests/example_data/db_schema.py"
     # target_path = "tests/results/benchmarks/entity_relation_diagram/"
 
-    target_path = "tests/results/benchmarks/commit_msg/"
-
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
     for i in range(len(model_list)):
@@ -46,13 +44,14 @@ def main():
         # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
         if yaml.config.git.commit.allow_auto_msg:
+            diff_msg_path = "tests/example_data/git_diff"
+            with open(diff_msg_path, 'r') as r:
+                git_diff = '\n'.join(r.readlines())
+
             api = LLM_API(config=yaml.config, model=model_list[i])
 
             with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
                 prompt = '\n'.join(r.readlines())
-
-            with open('tests/example_data/git_diff', 'r') as r:
-                git_diff = '\n'.join(r.readlines())
 
             result = ""
             try:
@@ -60,6 +59,7 @@ def main():
             except ValueError as err:
                 print(err)
 
+            target_path = "tests/results/benchmarks/commit_msg/"
             FileWriter(target_path=target_path+f"msg_{i}", content=result)
 
         sleep(yaml.config.llm_service.api.request_delay_seconds)
