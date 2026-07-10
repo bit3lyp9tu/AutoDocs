@@ -27,8 +27,10 @@ def main():
             print(err)
 
         if yaml.config.git.commit.vim_examination:
-            msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
+            msg = TerminalMaster(config=yaml.config).openVIM(result)
             # print(msg)
             message_file.write_text(msg, encoding="utf-8")
         else:
-            message_file.write_text(git_diff, encoding="utf-8")
+            message_file.write_text(result, encoding="utf-8")
+
+main()
