@@ -32,47 +32,49 @@ def main():
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
-    for i in range(len(model_list)):
-        print(f"Applying Model [{model_list[i]}]...")
+    print(GitMaster(yaml.config).diff())
 
-        # file_path = target_path + f"test_{i}.puml"
-        # PlantUMLConverter(
-        #     config=yaml.config,
-        #     model=model_list[i]
-        # ).convert(
-        #     source_file=source,
-        #     target_path=file_path
-        # )
-        # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
+    # for i in range(len(model_list)):
+    #     print(f"Applying Model [{model_list[i]}]...")
 
-        if yaml.config.git.commit.allow_auto_msg:
-            # diff_msg_path = "tests/example_data/git_diff"
-            # with open(diff_msg_path, 'r') as r:
-            #     git_diff = r.read()
+    #     # file_path = target_path + f"test_{i}.puml"
+    #     # PlantUMLConverter(
+    #     #     config=yaml.config,
+    #     #     model=model_list[i]
+    #     # ).convert(
+    #     #     source_file=source,
+    #     #     target_path=file_path
+    #     # )
+    #     # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
-            git_diff = GitMaster(yaml.config).diff()
+    #     if yaml.config.git.commit.allow_auto_msg:
+    #         # diff_msg_path = "tests/example_data/git_diff"
+    #         # with open(diff_msg_path, 'r') as r:
+    #         #     git_diff = r.read()
 
-            api = LLM_API(config=yaml.config, model=model_list[i])
+    #         git_diff = GitMaster(yaml.config).diff()
 
-            with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
-                prompt = r.read()
+    #         api = LLM_API(config=yaml.config, model=model_list[i])
 
-            result = ""
-            try:
-                result = api.call(rule=prompt, prompt=git_diff)
-            except ValueError as err:
-                print(err)
+    #         with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
+    #             prompt = r.read()
 
-            target_path = "tests/results/benchmarks/commit_msg/"
-            FileWriter(target_path=target_path+f"msg_{i}", content=result)
+    #         result = ""
+    #         try:
+    #             result = api.call(rule=prompt, prompt=git_diff)
+    #         except ValueError as err:
+    #             print(err)
 
-            # diff_msg_path = "tests/example_data/git_diff"
-            # with open(diff_msg_path, 'r') as r:
-            #     git_diff = r.read()
-            # msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
-            # print(msg)
+    #         target_path = "tests/results/benchmarks/commit_msg/"
+    #         FileWriter(target_path=target_path+f"msg_{i}", content=result)
 
-        sleep(yaml.config.llm_service.api.request_delay_seconds)
+    #         # diff_msg_path = "tests/example_data/git_diff"
+    #         # with open(diff_msg_path, 'r') as r:
+    #         #     git_diff = r.read()
+    #         # msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
+    #         # print(msg)
+
+    #     sleep(yaml.config.llm_service.api.request_delay_seconds)
 
 
 

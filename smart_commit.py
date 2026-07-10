@@ -13,8 +13,8 @@ def main():
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
     if yaml.config.git.commit.allow_auto_msg:
-        print(GitMaster(yaml.config).diff())
 
+        print(GitMaster(yaml.config).diff())
         diff_msg_path = "tests/example_data/git_diff"
         with open(diff_msg_path, 'r') as r:
             git_diff = r.read()
