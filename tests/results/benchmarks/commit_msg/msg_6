@@ -1,0 +1,10 @@
+feat(git): implement automated commit message generation
+
+Introduces functionality to generate commit messages using LLM APIs based on a configurable system prompt.
+
+- Added `GitCommit` and updated `Git` and `Config` models in `src/config_model.py` to support commit message configuration.
+- Created `src/git_master.py` as a placeholder for git operations.
+- Updated `main.py` to integrate `LLM_API` for commit message generation benchmarks.
+- Refactored `LLM_API` in `src/request.py` to use `key_location` from the configuration instead of a hardcoded default path.
+- Added commit convention prompt configuration to `tests/configs/autodocs.yaml`.
+- Updated `README.md` with a reference to the conventional commits standard used for prompts.

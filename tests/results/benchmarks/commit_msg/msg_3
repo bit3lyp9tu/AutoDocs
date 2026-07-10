@@ -1,0 +1,10 @@
+feat(git): add commit message generation via LLM
+
+Introduce a new feature to auto-generate commit messages using the configured LLM service:
+
+- Add `GitMaster` class skeleton in `src/git_master.py` for handling git operations
+- Extend config model with `GitCommit` settings (`allow_auto_msg`, `sysprompt`) under `git` config section
+- Enable `git` section in `Config` model
+- Update `LLM_API` to read API key location from config instead of hardcoded `~/.llm_key`
+- Refactor `main.py` to load commit prompt from config and call `LLM_API` to generate commit messages
+- Add `tests/configs/commit-convention.md` reference in README and YAML config

@@ -1,0 +1,14 @@
+feat(git): add commit message generation using LLM API and config support
+
+This commit introduces a new feature for generating commit messages using an LLM API, integrated with the existing configuration system. The following changes were made:
+
+- Added `LLM_API` class in `src/request.py` to handle API calls for commit message generation.
+- Added `GitCommit` model in `src/config_model.py` to support configuration for auto-commit messages.
+- Updated `main.py` to use the new LLM API for generating commit messages instead of rendering diagrams.
+- Added `GitMaster` class in `src/git_master.py` to handle git diff operations.
+- Updated `tests/configs/autodocs.yaml` to include commit message configuration.
+- Updated `README.md` to reference the conventional commits specification used for commit message generation.
+
+The new feature allows for auto-generated commit messages based on prompts defined in `tests/configs/commit-convention.md`. This improves consistency and reduces manual effort in commit message creation.
+
+BREAKING CHANGE: The code now uses LLM API for commit message generation, which may require updating the prompt configuration file.

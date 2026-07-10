@@ -17,5 +17,6 @@ When generating a commit message you must follow these rules:
 15. The units of information that make up Conventional Commits MUST NOT be treated as case-sensitive by implementors, with the exception of BREAKING CHANGE which MUST be uppercase.
 16. BREAKING-CHANGE MUST be synonymous with BREAKING CHANGE, when used as a token in a footer.
 
-**Only return the commit message itself, nothing else!**
-(You may write it in markdown format)
+**Do not write a complete code review!**
+**Only return the commit message itself, and nothing else!**
+

@@ -1,0 +1,8 @@
+ feat(git): add commit message generation support
+
+Add GitCommit config model, GitMaster skeleton, and integrate LLM_API
+for generating commit messages using a dedicated system prompt.
+
+BREAKING CHANGE: LLM_API no longer accepts `llm_key_path` as a
+constructor argument; use `llm_service.api.key_location` in config
+instead.

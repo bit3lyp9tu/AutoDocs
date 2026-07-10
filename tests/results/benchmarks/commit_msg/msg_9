@@ -1,0 +1,11 @@
+```
+feat(git): add commit message generation support
+
+- Add GitMaster class for git operations with diff method stub
+- Add GitCommit config model with allow_auto_msg and sysprompt fields
+- Enable Git config section in Config model
+- Update main.py to use LLM API for commit message generation
+- Add commit convention system prompt configuration
+- Update LLM_API to use key_location from config instead of hardcoded path
+- Add Conventional Commits reference to README
+```

@@ -1,0 +1,11 @@
+feat(git): add functionality for automated commit message generation
+
+Introduces a new feature to generate commit messages using LLM based on a specified convention.
+
+Changes include:
+- Added `GitCommit` and updated `Git` models in `src/config_model.py` to support commit configuration.
+- Implemented `GitMaster` class in `src/git_master.py` as a foundation for git operations.
+- Updated `main.py` to integrate `LLM_API` for testing commit message generation.
+- Refactored `LLM_API` in `src/request.py` to use key locations defined in the configuration.
+- Updated `tests/configs/autodocs.yaml` with commit-specific prompts and settings.
+- Updated `README.md` to include references to the conventional commits standard.

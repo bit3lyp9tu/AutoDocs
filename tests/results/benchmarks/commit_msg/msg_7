@@ -1,0 +1,14 @@
+feat!: add git commit message generation with conventional commits support
+
+This commit introduces the ability to generate git commit messages using conventional commit conventions. Key changes include:
+
+- Added new GitCommit configuration model with allow_auto_msg flag and sysprompt
+- Implemented GitMaster class for handling git operations (currently stubbed)
+- Updated LLM_API to properly read API keys from config instead of hardcoded path
+- Added commit message generation functionality in main.py
+- Created commit-convention.md prompt template following https://www.conventionalcommits.org/en/v1.0.0/
+- Updated autodocs.yaml config to include git commit settings
+
+The implementation allows for automated commit message generation based on code changes while adhering to conventional commit standards for better version control practices.
+
+BREAKING CHANGE: The LLM_API constructor now reads API keys from config instead of using a hardcoded default path. The git configuration structure has been updated to support commit message generation features.

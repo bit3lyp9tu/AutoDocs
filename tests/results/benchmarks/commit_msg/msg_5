@@ -1,0 +1,290 @@
+Below is a quick **code‑review / sanity‑check** of the changes you just committed, together with a few **concrete fixes** and **suggestions** that will get the new “commit‑message‑generation” flow working without breaking the existing PlantUML pipeline.
+
+---
+
+## 1.  High‑level picture  
+
+| File | What you added / changed | Goal |
+|------|--------------------------|------|
+| `README.md` | Added a note that the `commit‑convention.md` prompt is based on Conventional Commits. | Documentation only – fine. |
+| `main.py` | Switched the benchmark loop from PlantUML conversion to a call to `LLM_API` that reads a system‑prompt from the new Git‑section of the YAML config. | This is the new “commit‑msg” benchmark. |
+| `src/config_model.py` | Introduced `GitCommit` (with `allow_auto_msg` and a `sysprompt`) and made `Git` contain a `commit` field. | Extends the config schema. |
+| `src/config_parser.py` | Removed the empty parentheses after the class name (`class YAMLConfig:`). | Minor style fix – works the same. |
+| `src/git_master.py` | Stub for a future `GitMaster` helper (currently just a placeholder). | No impact yet. |
+| `src/request.py` | `LLM_API` now reads the key from `config.llm_service.api.key_location` instead of a hard‑coded `~/.llm_key`. | Makes the key location configurable. |
+| `tests/configs/autodocs.yaml` | Added the `git.commit` section with the path to `commit-convention.md`. | Supplies the new config data. |
+
+Overall the direction is correct, but a handful of **runtime errors** will surface the first time you run the script.
+
+---
+
+## 2.  Immediate blockers
+
+### 2.1 `main.py` – undefined variable `text`
+
+```python
+raw_result = api.call(rule=prompt, prompt=text)
+```
+
+*`text`* is never created. In the previous version you passed a **source file** (`source`) to the PlantUML converter. For commit‑message generation you probably want the *content of that source file* (or maybe the diff) as the “user prompt”.
+
+**Fix – minimal viable version**
+
+```python
+# read the source file that you want to describe in a commit message
+with open(source, "r", encoding="utf-8") as src_f:
+    text = src_f.read()
+```
+
+If you later decide to feed a `git diff` instead of the whole file, replace the block above with something like:
+
+```python
+# Example using GitMaster (still a stub)
+git_master = GitMaster(config=yaml.config)
+diff_text  = git_master.diff()          # ← implement this later
+text = diff_text
+```
+
+---
+
+### 2.2 `main.py` – the result of the API call is never used
+
+You store the call in `raw_result` (or `result`) but never write it anywhere. For the benchmark you likely want a file per model, e.g.:
+
+```python
+output_file = f"{target_path}/commit_{i}.txt"
+with open(output_file, "w", encoding="utf-8") as out_f:
+    out_f.write(raw_result)
+print(f"✔  Model [{model_list[i]}] → {output_file}")
+```
+
+---
+
+### 2.3 `src/config_model.py` – missing import of `SysPrompt`
+
+`GitCommit` references `SysPrompt`, but the file does not import it. Add the import at the top of the file (it already lives in the same module that defines `AutoDocs`):
+
+```python
+from src.config_model import SysPrompt   # <-- Add this line
+```
+
+If `SysPrompt` lives in a different module (e.g., `src.prompts`), import from there instead.
+
+---
+
+### 2.4 `src/config_model.py` – field naming consistency
+
+You added `git: Git` to `Config`, but the previous comment `# git: Git` was removed. Everything is fine, however make sure **all** downstream code uses `config.git.commit...` (as you already did).  
+
+If any part of the code still expects `config.git` to be `None` you’ll have to update those references.
+
+---
+
+### 2.5 `src/request.py` – `key_location` may be missing
+
+The new line:
+
+```python
+key_location = str(config.llm_service.api.key_location)
+```
+
+relies on the attribute `key_location` being present in the YAML. Verify that the `tests/configs/autodocs.yaml` (or the production config) contains it, e.g.:
+
+```yaml
+llm_service:
+  api:
+    base_url: "https://api.someprovider.com"
+    key_location: "~/.llm_key"   # <-- add this if you haven’t yet
+```
+
+Otherwise `AttributeError` will be raised.
+
+---
+
+### 2.6 `src/git_master.py` – placeholder `diff` method
+
+Right now it does nothing (`pass`). If you plan to feed a real `git diff` to the LLM you’ll need to implement it, for example:
+
+```python
+import subprocess
+
+class GitMaster:
+    ...
+
+    def diff(self) -> str:
+        """Return `git diff` between HEAD and its parent as a string."""
+        result = subprocess.run(
+            ["git", "diff", "HEAD~1"], capture_output=True, text=True, check=False
+        )
+        return result.stdout
+```
+
+You can later replace the `text = src_f.read()` block with `text = GitMaster(...).diff()`.
+
+---
+
+## 3.  Suggested clean‑up of `main.py`
+
+Below is a **concise, runnable version** that incorporates the fixes above while keeping the original benchmark structure:
+
+```python
+#!/usr/bin/env python3
+import sys
+from time import sleep
+from src.config_parser import YAMLConfig
+from src.request import LLM_API
+
+def main():
+    model_list = [
+        "meta-llama/Llama-3.3-70B-Instruct",
+        "google/gemma-2-27b-it",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "01-ai/Yi-1.5-34B-Chat",
+        "01-ai/Yi-1.5-9B-Chat",
+        "microsoft/Phi-3-mini-128k-instruct",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.2-1B-Instruct",
+        "meta-llama/Llama-3.2-3B-Instruct",
+        "zai-org/GLM-5.2-FP8",
+    ]
+
+    # ---------------------------------------------------------
+    #   Benchmark configuration
+    # ---------------------------------------------------------
+    yaml = YAMLConfig('tests/configs/autodocs.yaml')
+    source_path   = "tests/example_data/db_schema.py"   # <-- whatever you want to describe
+    target_folder = "tests/results/benchmarks/commit_msg"
+
+    # ---------------------------------------------------------
+    #   Run each model
+    # ---------------------------------------------------------
+    for i, model_name in enumerate(model_list):
+        print(f"\n=== Model [{i}] {model_name} ===")
+
+        # 1️⃣  Load the system prompt (commit‑convention)
+        with open(yaml.config.git.commit.sysprompt.file_path, "r", encoding="utf-8") as f:
+            sys_prompt = "\n".join(f.readlines())
+
+        # 2️⃣  Load the file that will be turned into a commit message
+        with open(source_path, "r", encoding="utf-8") as f:
+            user_prompt = f.read()
+
+        # 3️⃣  Call the LLM
+        api = LLM_API(config=yaml.config, model=model_name)
+        try:
+            raw_result = api.call(rule=sys_prompt, prompt=user_prompt)
+        except ValueError as err:
+            print(f"❌  LLM call failed: {err}")
+            continue
+
+        # 4️⃣  Persist the result so you can compare later
+        out_path = f"{target_folder}/commit_{i}.txt"
+        with open(out_path, "w", encoding="utf-8") as out_f:
+            out_f.write(raw_result)
+
+        print(f"✅  Saved commit message → {out_path}")
+
+        # Respect the throttling delay defined in the config
+        sleep(yaml.config.llm_service.api.request_delay_seconds)
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+*What changed?*
+
+1. **Explicit loop variables** (`i, model_name`) – a bit clearer.
+2. **Read both sys‑prompt and source file** before the LLM call.  
+3. **Write the LLM output to a text file** (`commit_{i}.txt`).  
+4. **Graceful error handling** – continue to the next model on failure.  
+5. **Removed the commented‑out PlantUML code** (kept for reference, but not executed).  
+
+If you still need the PlantUML benchmark somewhere else, extract it into a separate function (or script) rather than mixing the two concerns in the same loop.
+
+---
+
+## 4.  Verify the updated config schema
+
+A minimal, working `tests/configs/autodocs.yaml` that satisfies *all* the newly introduced fields could look like this:
+
+```yaml
+llm_service:
+  api:
+    base_url: "https://api.openai.com/v1/chat/completions"
+    key_location: "~/.llm_key"                # <-- used by LLM_API
+    request_delay_seconds: 2                  # <-- throttling
+
+autodocs:
+  sysprompt:
+    file_path: 'tests/configs/autodocs-prompt.md'
+
+git:
+  commit:
+    allow_auto_msg: true
+    sysprompt:
+      file_path: 'tests/configs/commit-convention.md'
+```
+
+Make sure **every** field that `src.config_model` declares (`BaseModel` from *pydantic* or *pydantic‑v2*?) has a matching entry in the YAML; otherwise `YAMLConfig` will raise a validation error.
+
+---
+
+## 5.  Quick checklist before you run the benchmarks
+
+| ✅ | Item |
+|----|------|
+| **1** | `tests/configs/commit-convention.md` exists and contains a valid Conventional‑Commits prompt. |
+| **2** | `tests/configs/autodocs-prompt.md` still exists (used by other parts of the app). |
+| **3** | The LLM API key file (`~/.llm_key` by default) is present **or** `key_location` points to the correct file. |
+| **4** | `tests/example_data/db_schema.py` (or whichever file you point to) is readable. |
+| **5** | The output directory `tests/results/benchmarks/commit_msg` exists **or** you create it on the fly (`os.makedirs(target_folder, exist_ok=True)`). |
+| **6** | All imports are satisfied (`src.config_model`, `src.request`, etc.). |
+| **7** | If you keep the `git_master.diff` placeholder, make sure you don’t call it until it’s implemented (or comment it out). |
+
+You can add the directory‑creation line right after `target_folder` is defined:
+
+```python
+import os
+os.makedirs(target_folder, exist_ok=True)
+```
+
+---
+
+## 6.  Optional – keep the PlantUML benchmark alive
+
+If you still want to be able to run the original UML generation (maybe in a different CI job), you could turn the two modes into **sub‑commands** using `argparse`:
+
+```python
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--mode", choices=["uml", "commit"], default="uml")
+args = parser.parse_args()
+
+if args.mode == "uml":
+    run_uml_benchmark(...)
+else:
+    run_commit_benchmark(...)
+```
+
+That way you won’t accidentally comment out large blocks of code each time you switch contexts.
+
+---
+
+## 7.  TL;DR – What you should do now
+
+1. **Patch `main.py`** with the `text` variable, write the LLM output to a file, and optionally create the output directory.  
+2. **Add the missing import** (`SysPrompt`) in `src/config_model.py`.  
+3. **Make sure the YAML** contains `key_location` and the new `git.commit` section (as shown above).  
+4. **Run the script**:  
+   ```bash
+   python -B main.py
+   ```
+   You should see a line for every model, a small pause (per `request_delay_seconds`), and a `commit_X.txt` file for each iteration.  
+
+5. (Future) **Implement `GitMaster.diff`** if you ever want to feed a real `git diff` instead of the whole source file.
+
+Once those steps are done you’ll have a fully functional commit‑message generation benchmark alongside the original PlantUML one, and the repository will be in a clean, documented state.
+
+Let me know if you run into any other hiccups (e.g., pydantic validation errors, LLM‑API authentication problems, etc.) – happy to dive deeper! 🚀
