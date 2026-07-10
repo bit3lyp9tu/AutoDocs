@@ -8,8 +8,6 @@ from src.terminal_master import TerminalMaster
 
 
 def main():
-    print("Autogenerate commit message")
-
     message_file = Path(sys.argv[1])
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
