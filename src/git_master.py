@@ -9,10 +9,8 @@ class GitMaster:
         self.config = config
 
     def diff(self):
-        # git commit -am '<<autodocs-auto>>'
-
         diff = subprocess.check_output(
-            ["git", "diff"],
+            ["git", "diff", "--cached"],
             text=True,
         )
         return diff

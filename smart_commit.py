@@ -14,11 +14,8 @@ def main():
 
     if yaml.config.git.commit.allow_auto_msg:
 
-        print(GitMaster(yaml.config).diff())
-        diff_msg_path = "tests/example_data/git_diff"
-        with open(diff_msg_path, 'r') as r:
-            git_diff = r.read()
-        # git_diff = GitMaster(yaml.config).diff()
+        git_diff = GitMaster(yaml.config).diff()
+        print(git_diff)
 
         api = LLM_API(config=yaml.config, model="openGPT-X/Teuken-7B-instruct-v0.6")
 
