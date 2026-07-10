@@ -65,7 +65,7 @@ index 9d42751..343dc18 100644
 +        api = LLM_API(config=yaml.config, model=model_list[i])
 +
 +        with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
-+            prompt = '\n'.join(r.readlines())
++            prompt = r.read()
 +
 +        result = []
 +        try:

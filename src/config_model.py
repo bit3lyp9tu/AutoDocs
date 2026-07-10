@@ -80,6 +80,7 @@ class AutoDocs(BaseModel):
 class GitCommit(BaseModel):
     allow_auto_msg: bool = True
     sysprompt: SysPrompt
+    vim_examination: bool = True
 
 class Git(BaseModel):
     commit: GitCommit

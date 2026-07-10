@@ -2,9 +2,11 @@ from time import sleep
 
 from src.config_parser import YAMLConfig
 from src.file_factory import FileWriter
+from src.git_master import GitMaster
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
 from src.request import LLM_API
+from src.terminal_master import TerminalMaster
 
 
 def main():
@@ -44,14 +46,16 @@ def main():
         # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
         if yaml.config.git.commit.allow_auto_msg:
-            diff_msg_path = "tests/example_data/git_diff"
-            with open(diff_msg_path, 'r') as r:
-                git_diff = '\n'.join(r.readlines())
+            # diff_msg_path = "tests/example_data/git_diff"
+            # with open(diff_msg_path, 'r') as r:
+            #     git_diff = r.read()
+
+            git_diff = GitMaster(yaml.config).diff()
 
             api = LLM_API(config=yaml.config, model=model_list[i])
 
             with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
-                prompt = '\n'.join(r.readlines())
+                prompt = r.read()
 
             result = ""
             try:
@@ -62,7 +66,15 @@ def main():
             target_path = "tests/results/benchmarks/commit_msg/"
             FileWriter(target_path=target_path+f"msg_{i}", content=result)
 
+            # diff_msg_path = "tests/example_data/git_diff"
+            # with open(diff_msg_path, 'r') as r:
+            #     git_diff = r.read()
+            # msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
+            # print(msg)
+
         sleep(yaml.config.llm_service.api.request_delay_seconds)
+
+
 
 if __name__ == "__main__":
     main()

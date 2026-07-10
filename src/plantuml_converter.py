@@ -62,7 +62,7 @@ class PlantUMLConverter:
         text = FileReader(source_file).text
 
         with open(self.config.autodocs.sysprompt.file_path, 'r') as r:
-            prompt = '\n'.join(r.readlines())
+            prompt = r.read()
 
         api = LLM_API(
             config=self.config,

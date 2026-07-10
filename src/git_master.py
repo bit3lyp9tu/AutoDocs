@@ -1,4 +1,6 @@
 
+import subprocess
+
 from src.config_model import Config
 
 
@@ -7,5 +9,10 @@ class GitMaster:
         self.config = config
 
     def diff(self):
-        # git diff HEAD~1
-        pass
+        # git commit -am '<<autodocs-auto>>'
+
+        diff = subprocess.check_output(
+            ["git", "diff"],
+            text=True,
+        )
+        return diff

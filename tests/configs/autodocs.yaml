@@ -38,3 +38,4 @@ git:
     allow_auto_msg: True
     sysprompt:
       file_path: 'tests/configs/commit-convention.md'
+    vim_examination: True
