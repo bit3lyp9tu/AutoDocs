@@ -7,4 +7,5 @@ class GitMaster:
         self.config = config
 
     def diff(self):
+        # git diff HEAD~1
         pass

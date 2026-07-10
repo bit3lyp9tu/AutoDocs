@@ -77,12 +77,14 @@ class AutoDocs(BaseModel):
     valid_diagrams: ValidDiagrams
     sysprompt: SysPrompt
 
+class GitCommit(BaseModel):
+    allow_auto_msg: bool = True
+    sysprompt: SysPrompt
 
 class Git(BaseModel):
-    pass
-
+    commit: GitCommit
 
 class Config(BaseModel):
     llm_service: LLMService
     autodocs: AutoDocs
-    # git: Git
+    git: Git

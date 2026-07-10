@@ -1,8 +1,10 @@
 from time import sleep
 
 from src.config_parser import YAMLConfig
+from src.file_factory import FileWriter
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
+from src.request import LLM_API
 
 
 def main():
@@ -22,26 +24,43 @@ def main():
     ]
 
     # source = "tests/example_data/oop.py"
-    # target_path = f"tests/results/benchmarks/uml_class_diagram/"
-    source = "tests/example_data/db_schema.py"
-    target_path = f"tests/results/benchmarks/entity_relation_diagram/"
+    # target_path = "tests/results/benchmarks/uml_class_diagram/"
+    # source = "tests/example_data/db_schema.py"
+    # target_path = "tests/results/benchmarks/entity_relation_diagram/"
+
+    target_path = "tests/results/benchmarks/commit_msg/"
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
     for i in range(len(model_list)):
         print(f"Applying Model [{model_list[i]}]...")
 
-        file_path = target_path + f"test_{i}.puml"
+        # file_path = target_path + f"test_{i}.puml"
+        # PlantUMLConverter(
+        #     config=yaml.config,
+        #     model=model_list[i]
+        # ).convert(
+        #     source_file=source,
+        #     target_path=file_path
+        # )
+        # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
-        PlantUMLConverter(
-            config=yaml.config,
-            model=model_list[i]
-        ).convert(
-            source_file=source,
-            target_path=file_path
-        )
+        if yaml.config.git.commit.allow_auto_msg:
+            api = LLM_API(config=yaml.config, model=model_list[i])
 
-        PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
+            with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
+                prompt = '\n'.join(r.readlines())
+
+            with open('tests/example_data/git_diff', 'r') as r:
+                git_diff = '\n'.join(r.readlines())
+
+            result = ""
+            try:
+                result = api.call(rule=prompt, prompt=git_diff)
+            except ValueError as err:
+                print(err)
+
+            FileWriter(target_path=target_path+f"msg_{i}", content=result)
 
         sleep(yaml.config.llm_service.api.request_delay_seconds)
 

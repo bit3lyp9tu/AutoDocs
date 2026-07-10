@@ -3,7 +3,7 @@ import yaml
 from src.config_model import Config
 
 
-class YAMLConfig():
+class YAMLConfig:
     def __init__(self, config_path="autodocs.yaml") -> None:
         self.config_path = config_path
         with open(self.config_path, 'r') as f:

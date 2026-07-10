@@ -33,4 +33,8 @@ autodocs:
   sysprompt:
     file_path: 'tests/configs/autodocs-prompt.md'
     # content: ''
-# git:
+git:
+  commit:
+    allow_auto_msg: True
+    sysprompt:
+      file_path: 'tests/configs/commit-convention.md'

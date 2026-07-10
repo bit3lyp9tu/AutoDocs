@@ -7,5 +7,6 @@ For now, you need to download the renderer manually
 
 To render a *.puml file manually, run `java -jar resources/plantuml.jar <your_puml_file_path>`.
 
-
 Valid diagrams are: [https://plantuml.com/guide](https://plantuml.com/guide)
+
+For `tests/configs/commit-convention.md` prompt [https://www.conventionalcommits.org/en/v1.0.0/](https://www.conventionalcommits.org/en/v1.0.0/) was used.
