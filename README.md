@@ -13,6 +13,8 @@ For `tests/configs/commit-convention.md` prompt [https://www.conventionalcommits
 
 
 ## Smart commit
+Generating a fitting commit message by a llm
+
 Add the script to the following git-hook:
 ```sh
 echo '#!/bin/sh
