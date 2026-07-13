@@ -1,6 +1,6 @@
 # AutoDocs
 
-# Workflow for AutoDocs - Tool
+### Workflow for AutoDocs - Tool
 
 1. install autodocs from repo to e.g `~/Documents/tools/`
 this location contains dependencies like python-venv and other requred packages like jar files for rendering, ...
@@ -16,7 +16,6 @@ project/.autodocs/...
 project/...
 
 configures some other stuff like git-hooks, ...
-
 
 3. now to use the autodocs tool, it can be localy run with `autodocs <command>`
 
@@ -40,6 +39,8 @@ autodocs update
 ✓ Configuration valid
 ✓ Cache writable
 ✓ Project initialized
+
+---
 
 # autodocs.py --reload
 
