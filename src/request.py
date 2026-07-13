@@ -6,7 +6,7 @@ from src.config_model import Config
 
 
 class LLM_API:
-    def __init__(self, config: Config, model="meta-llama/Llama-3.3-70B-Instruct") -> None:
+    def __init__(self, config: Config, model="") -> None:
         self.base_url = config.llm_service.api.base_url
 
         if not config.llm_service.api.key_value:
@@ -18,7 +18,11 @@ class LLM_API:
         else:
             self.llm_key = config.llm_service.api.key_value
 
-        self.model = model
+        if not model:
+            self.model = config.git.commit.llm_model
+        else:
+            self.model = model
+
 
     def call(self, rule, prompt):
         client = OpenAI(

@@ -81,6 +81,7 @@ class GitCommit(BaseModel):
     allow_auto_msg: bool = True
     sysprompt: SysPrompt
     vim_examination: bool = True
+    llm_model: str
 
 class Git(BaseModel):
     commit: GitCommit
