@@ -46,11 +46,12 @@ def main():
         # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
         if yaml.config.git.commit.allow_auto_msg:
-            # diff_msg_path = "tests/example_data/git_diff"
-            # with open(diff_msg_path, 'r') as r:
-            #     git_diff = r.read()
-
-            git_diff = GitMaster(yaml.config).diff()
+            if False:
+                diff_msg_path = "tests/example_data/git_diff"
+                with open(diff_msg_path, 'r') as r:
+                    git_diff = r.read()
+            else:
+                git_diff = GitMaster(yaml.config).diff()
 
             api = LLM_API(config=yaml.config, model=model_list[i])
 
