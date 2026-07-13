@@ -26,6 +26,10 @@ def main():
         except ValueError as err:
             print(err)
 
+        print("stdin:", sys.stdin.isatty())
+        print("stdout:", sys.stdout.isatty())
+        print("stderr:", sys.stderr.isatty())
+
         if yaml.config.git.commit.vim_examination:
             msg = TerminalMaster(config=yaml.config).openVIM(result)
             print(msg)
