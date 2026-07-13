@@ -82,6 +82,7 @@ class GitCommit(BaseModel):
     sysprompt: SysPrompt
     vim_examination: bool = True
     llm_model: str
+    api_auto_abort_duration_seconds: int = 600
 
 class Git(BaseModel):
     commit: GitCommit

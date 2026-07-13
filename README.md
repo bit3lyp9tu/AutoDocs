@@ -1,3 +1,19 @@
+# AutoDocs
+
+## Smart commit
+Generating a fitting commit message by a llm
+
+Add the script to the following git-hook:
+```sh
+echo '#!/bin/sh
+
+uv run python3 smart_commit.py .git/COMMIT_EDITMSG --config "tests/configs/autodocs.yaml"' >> ./.git/hooks/prepare-commit-msg
+```
+You may need to give the necessary file permissions:
+`chmod +x ./.git/hooks/prepare-commit-msg`
+
+
+
 
 Manuall for the full install: [https://plantuml.com/starting](https://plantuml.com/starting)
 
@@ -12,14 +28,3 @@ Valid diagrams are: [https://plantuml.com/guide](https://plantuml.com/guide)
 For `tests/configs/commit-convention.md` prompt [https://www.conventionalcommits.org/en/v1.0.0/](https://www.conventionalcommits.org/en/v1.0.0/) was used.
 
 
-## Smart commit
-Generating a fitting commit message by a llm
-
-Add the script to the following git-hook:
-```sh
-echo '#!/bin/sh
-
-uv run python3 smart_commit.py "$1"' >> ./.git/hooks/prepare-commit-msg
-```
-You may need to give the necessary file permissions:
-`chmod +x ./.git/hooks/prepare-commit-msg`
