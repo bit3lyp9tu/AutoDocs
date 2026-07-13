@@ -4,7 +4,6 @@ import sys
 from src.config_parser import YAMLConfig
 from src.git_master import GitMaster
 from src.request import LLM_API
-from src.terminal_master import TerminalMaster
 
 
 def main():
@@ -27,6 +26,8 @@ def main():
             result = api.call(rule=prompt, prompt=git_diff)
         except ValueError as err:
             print(err)
+
+        result += f"\n\n\nReviewed-by: {yaml.config.git.commit.llm_model}"
 
         message_file.write_text(result, encoding="utf-8")
 main()

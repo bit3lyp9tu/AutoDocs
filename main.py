@@ -46,7 +46,7 @@ def main():
         # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
 
         if yaml.config.git.commit.allow_auto_msg:
-            if False:
+            if True:
                 diff_msg_path = "tests/example_data/git_diff"
                 with open(diff_msg_path, 'r') as r:
                     git_diff = r.read()
@@ -65,7 +65,7 @@ def main():
                 print(err)
 
             target_path = "tests/results/benchmarks/commit_msg/"
-            FileWriter(target_path=target_path+f"msg_{i}", content=result)
+            FileWriter(target_path=target_path+f"msg_extreme{i}", content=result)
 
             # diff_msg_path = "tests/example_data/git_diff"
             # with open(diff_msg_path, 'r') as r:
