@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 
 from src.file_factory import FileWriter
@@ -23,6 +24,8 @@ def init(args):
     hasGitEnv = Path(current_path / '.git').exists() and Path(current_path / '.git').is_dir()
 
     # create .autodocs directory and children (logs, cache, ...)
+    print("Creating new .autodocs directory")
+    os.mkdir(".autodocs")
     # TODO
 
     # add to .gitignore if in git env
