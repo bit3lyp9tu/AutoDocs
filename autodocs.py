@@ -13,8 +13,17 @@ def __str2bool(v):
 def help():
     print("Helping...")
 
-def init():
+def init(args):
     print("Initializing environment...")
+    # create .autodocs directory and children (logs, cache, ...)
+    # add to .gitignore if in git env
+
+    if args.git:
+        # configure git-hooks
+        pass
+
+    # create default autodocs.yaml config
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -24,9 +33,9 @@ def main():
     help_parser.set_defaults(func=lambda args: help())
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
-    init_parser.add_argument('-c', '--commits', type=__str2bool, default=True, help='Include git commit msg generation')
-    init_parser.add_argument('-u', '--umls', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
-    init_parser.set_defaults(func=lambda args: init())
+    init_parser.add_argument('-g', '--git', type=__str2bool, default=True, help='Include git support features like commit msg generation')
+    init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
+    init_parser.set_defaults(func=init)
 
     args = parser.parse_args()
     args.func(args)
