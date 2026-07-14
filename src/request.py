@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from openai import APIConnectionError, OpenAI
+from openai import APIConnectionError, OpenAI, PermissionDeniedError
 
 from src.config_model import Config
 
@@ -42,4 +42,7 @@ class LLM_API:
 
         except APIConnectionError as e:
             print(e)
+            return ""
+        except PermissionDeniedError as p:
+            print(p)
             return ""

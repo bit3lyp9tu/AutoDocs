@@ -38,5 +38,5 @@ git:
     sysprompt:
       file_path: 'tests/configs/commit-convention.md'
     vim_examination: True
-    llm_model: 'openGPT-X/Teuken-7B-instruct-v0.6'
+    llm_model: 'google/gemma-4-31B-it'
     api_auto_abort_duration_seconds: 600
