@@ -7,11 +7,11 @@ class FileReader:
 
 
 class FileWriter:
-    def __init__(self, target_path, content="") -> None:
+    def __init__(self, target_path, content="", mode='w') -> None:
         if content == "":
             raise ValueError(f"No content found to write into [{target_path}].")
 
-        with open(target_path, 'w') as f:
+        with open(target_path, mode) as f:
             f.write(content)
 
         if not os.path.isfile(target_path):

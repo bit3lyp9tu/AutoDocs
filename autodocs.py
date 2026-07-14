@@ -1,4 +1,7 @@
 import argparse
+from pathlib import Path
+
+from src.file_factory import FileWriter
 
 
 def __str2bool(v):
@@ -15,14 +18,33 @@ def help():
 
 def init(args):
     print("Initializing environment...")
+
+    current_path = Path(__file__).resolve().parent
+    hasGitEnv = Path(current_path / '.git').exists() and Path(current_path / '.git').is_dir()
+
     # create .autodocs directory and children (logs, cache, ...)
+    # TODO
+
     # add to .gitignore if in git env
+    if hasGitEnv:
+        print("Add files to .gitignore")
+        FileWriter(
+            target_path=f'{current_path / ".gitignore"}',
+            content='\n\n# AutoDocs\n.autodocs\n.autodocs/*',
+            mode='a'
+        )
 
-    if args.git:
-        # configure git-hooks
-        pass
+    # configure git-hooks
+    if args.git and hasGitEnv:
+        print("Add to script to ./.git/hooks/prepare-commit-msg")
+        FileWriter(
+            target_path=f'{current_path / "./.git/hooks/prepare-commit-msg"}',
+            content=f'uv run python3 smart_commit.py .git/COMMIT_EDITMSG --config "autodocs.yaml"',
+            mode='a'
+        )
 
-    # create default autodocs.yaml config
+    # create default autodocs.yaml config (only includes git attribute if args.git==True)
+    # TODO
 
 
 def main():

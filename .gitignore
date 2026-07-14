@@ -16,3 +16,8 @@ resources/*.jar
 .vscode
 
 tests/results/benchmarks/*
+
+
+# AutoDocs
+.autodocs
+.autodocs/*
