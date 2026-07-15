@@ -36,22 +36,26 @@ class LLM_API:
             timeout=self.config.git.commit.timeout
         )
 
-        status, time_taken = self.check_model_status()
-        print(f"{self.model} [{status}] ({time_taken}s)")
+        success, status, time_taken = self.check_model_status(model=self.model)
+        if success:
+            print(f"{self.model} [{status}] ({time_taken}s)")
 
-        try:
-            response = client.responses.create(
-                model=self.model,
-                instructions=rule,
-                input=prompt,
-            )
-            return response.output_text
+            try:
+                response = client.responses.create(
+                    model=self.model,
+                    instructions=rule,
+                    input=prompt,
+                )
+                return response.output_text
 
-        except APIConnectionError as e:
-            print(e)
-            return ""
-        except PermissionDeniedError as p:
-            print(p)
+            except APIConnectionError as e:
+                print(e)
+                return ""
+            except PermissionDeniedError as p:
+                print(p)
+                return ""
+        else:
+            print("Connection to API failed")
             return ""
 
 
@@ -63,40 +67,48 @@ class LLM_API:
             max_retries=5
         )
 
-        with client.responses.stream(
-            model=self.model,
-            instructions=rule,
-            input=prompt,
-        ) as stream:
-            for event in stream:
-                if event.type == "response.output_text.delta":
-                    yield event.delta
+        success, status, time_taken = self.check_model_status(model=self.model)
+        if success:
+            print(f"{self.model} [{status}] ({time_taken}s)")
 
-            response = stream.get_final_response()
+            with client.responses.stream(
+                model=self.model,
+                instructions=rule,
+                input=prompt,
+            ) as stream:
+                for event in stream:
+                    if event.type == "response.output_text.delta":
+                        yield event.delta
+
+                response = stream.get_final_response()
+        else:
+            print("Connection to API failed")
+            return ""
 
 
-    def check_model_status(self, hasPermission=True) -> tuple[str, float]:
+    def check_model_status(self, model, hasPermission=True) -> tuple[bool, str, float]:
         if not self.config.llm_service.status.pre_check_connection or not hasPermission:
-            return ("", 0)
+            return (False, "", 0)
 
         try:
             response = requests.get(self.config.llm_service.status.url).json()
         except requests.exceptions.RequestException as e:
-            print(e)
-            return ("", 0)
+            print(f"Connection to LLM status page failed: {e}")
+            return (False, "", 0)
 
         try:
             data = ScadsAIModelsStatus.model_validate(response)
         except ValidationError as e:
             print(e.errors())
-            return ("", 0)
+            return (False, "", 0)
 
         if self.config.llm_service.status.type in data.models.keys():
-            for model in data.models[self.config.llm_service.status.type]:
-                if model.real_name==self.config.git.commit.llm_model:
+            for i in data.models[self.config.llm_service.status.type]:
+                if i.real_name==model:
                     return (
-                        model.state,
-                        model.time_taken
+                        True,
+                        i.state,
+                        i.time_taken
                     )
             else:
                 raise ValueError("Model not in list")
