@@ -29,7 +29,7 @@ def main():
 
     result = ""
     try:
-        result = api.call(rule=prompt, prompt=git_diff)
+        result = api.request(rule=prompt, prompt=git_diff)
     except ValueError as err:
         print(err)
 

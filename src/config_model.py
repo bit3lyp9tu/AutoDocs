@@ -28,8 +28,16 @@ class API(BaseModel):
                 raise ValueError(f"Not a file: {value}")
         return value
 
+class LLMStatus(BaseModel):
+    type: str
+    pre_check_connection: bool = True
+    show_model_response_time: bool = True
+    show_model_status: bool = True
+    url: str
+
 class LLMService(BaseModel):
     api: API
+    status: LLMStatus
 
 
 class PlantUML(BaseModel):
@@ -82,7 +90,7 @@ class GitCommit(BaseModel):
     sysprompt: SysPrompt
     vim_examination: bool = True
     llm_model: str
-    api_auto_abort_duration_seconds: int = 600
+    timeout: int = 600
 
 class Git(BaseModel):
     commit: GitCommit

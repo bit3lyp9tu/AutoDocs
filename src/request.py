@@ -1,8 +1,12 @@
+import json
 from pathlib import Path
 
 from openai import APIConnectionError, OpenAI, PermissionDeniedError
+from pydantic import ValidationError
+import requests
 
 from src.config_model import Config
+from src.state_schemas import Model, ScadsAIModelsStatus
 
 
 class LLM_API:
@@ -25,12 +29,15 @@ class LLM_API:
             self.model = model
 
 
-    def call(self, rule, prompt):
+    def request(self, rule, prompt):
         client = OpenAI(
             base_url=self.base_url,
             api_key=self.llm_key,
-            timeout=self.config.git.commit.api_auto_abort_duration_seconds
+            timeout=self.config.git.commit.timeout
         )
+
+        status, time_taken = self.check_model_status()
+        print(f"{self.model} [{status}] ({time_taken}s)")
 
         try:
             response = client.responses.create(
@@ -46,3 +53,54 @@ class LLM_API:
         except PermissionDeniedError as p:
             print(p)
             return ""
+
+
+    def request_stream(self, rule, prompt):
+        client = OpenAI(
+            base_url=self.base_url,
+            api_key=self.llm_key,
+            timeout=self.config.git.commit.timeout,
+            max_retries=5
+        )
+
+        with client.responses.stream(
+            model=self.model,
+            instructions=rule,
+            input=prompt,
+        ) as stream:
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    yield event.delta
+
+            response = stream.get_final_response()
+
+
+    def check_model_status(self, hasPermission=True) -> tuple[str, float]:
+        if not self.config.llm_service.status.pre_check_connection or not hasPermission:
+            return ("", 0)
+
+        try:
+            response = requests.get(self.config.llm_service.status.url).json()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            return ("", 0)
+
+        try:
+            data = ScadsAIModelsStatus.model_validate(response)
+        except ValidationError as e:
+            print(e.errors())
+            return ("", 0)
+
+        if self.config.llm_service.status.type in data.models.keys():
+            for model in data.models[self.config.llm_service.status.type]:
+                if model.real_name==self.config.git.commit.llm_model:
+                    return (
+                        model.state,
+                        model.time_taken
+                    )
+            else:
+                raise ValueError("Model not in list")
+        else:
+            raise ValueError("LLM type is not in list")
+
+

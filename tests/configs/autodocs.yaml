@@ -4,6 +4,13 @@ llm_service:
     # key_value: ''
     key_location: '~/.llm_key'
     request_delay_seconds: 3
+  status:
+    type: 'Chat'
+    pre_check: true
+    show_model_response_time: true
+    show_model_status: true
+    url: 'https://llm.scads.ai/status/state.json'
+
 autodocs:
   plantuml:
     renderer_path: 'resources/plantuml.jar'
@@ -39,4 +46,4 @@ git:
       file_path: 'tests/configs/commit-convention.md'
     vim_examination: True
     llm_model: 'google/gemma-4-31B-it'
-    api_auto_abort_duration_seconds: 600
+    timeout: 600

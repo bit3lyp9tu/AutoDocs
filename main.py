@@ -1,7 +1,8 @@
+from pathlib import Path
 from time import sleep
 
 from src.config_parser import YAMLConfig
-from src.file_factory import FileWriter
+from src.file_factory import FileReader, RecursiveSubdirectories, FileWriter
 from src.git_master import GitMaster
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
@@ -32,50 +33,28 @@ def main():
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
-    # for i in range(len(model_list)):
-    #     print(f"Applying Model [{model_list[i]}]...")
+    rule = "Create for each file a description. The description should be for dokumentnational purposes."
+    contents = []
 
-    #     # file_path = target_path + f"test_{i}.puml"
-    #     # PlantUMLConverter(
-    #     #     config=yaml.config,
-    #     #     model=model_list[i]
-    #     # ).convert(
-    #     #     source_file=source,
-    #     #     target_path=file_path
-    #     # )
-    #     # PlantUMLRendering(config=yaml.config, render_source_path=file_path).render()
+    root = Path(__file__).resolve().parent
+    directory = Path(root / 'tests/example_data/complex_example1')
+    for file in RecursiveSubdirectories(directory).children:
+        contents.append(file)
+        contents.append(FileReader(target_path=str(directory)+file).text)
+        contents.append("")
 
-    #     if yaml.config.git.commit.allow_auto_msg:
-    #         if True:
-    #             diff_msg_path = "tests/example_data/git_diff"
-    #             with open(diff_msg_path, 'r') as r:
-    #                 git_diff = r.read()
-    #         else:
-    #             git_diff = GitMaster(yaml.config).diff()
+    print(f'Prompt length lines: {len(contents)}')
 
-    #         api = LLM_API(config=yaml.config, model=model_list[i])
+    api = LLM_API(config=yaml.config, model="MiniMaxAI/MiniMax-M3-MXFP8")
 
-    #         with open(yaml.config.git.commit.sysprompt.file_path, 'r') as r:
-    #             prompt = r.read()
+    result = ""
+    try:
+        for chunk in api.request_stream(rule=rule, prompt=contents):
+            print(chunk, end="", flush=True)
+    except ValueError as err:
+        print(err)
 
-    #         result = ""
-    #         try:
-    #             result = api.call(rule=prompt, prompt=git_diff)
-    #         except ValueError as err:
-    #             print(err)
-
-    #         target_path = "tests/results/benchmarks/commit_msg/"
-    #         FileWriter(target_path=target_path+f"msg_extreme{i}", content=result)
-
-    #         # diff_msg_path = "tests/example_data/git_diff"
-    #         # with open(diff_msg_path, 'r') as r:
-    #         #     git_diff = r.read()
-    #         # msg = TerminalMaster(config=yaml.config).openVIM(git_diff)
-    #         # print(msg)
-
-    #     sleep(yaml.config.llm_service.api.request_delay_seconds)
-
-
+    # FileWriter(target_path='tests/results/benchmarks/complex_project/doc_0.md', content=result)
 
 
 if __name__ == "__main__":

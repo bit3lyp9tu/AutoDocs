@@ -71,7 +71,7 @@ class PlantUMLConverter:
 
         result = []
         try:
-            raw_result = api.call(rule=prompt, prompt=text)
+            raw_result = api.request(rule=prompt, prompt=text)
             result = self._split_plantuml_sections(raw_result)
         except ValueError as err:
             print(err)
