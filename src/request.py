@@ -71,16 +71,26 @@ class LLM_API:
         if success:
             print(f"{self.model} [{status}] ({time_taken}s)")
 
-            with client.responses.stream(
+            stream = client.responses.create(
                 model=self.model,
                 instructions=rule,
                 input=prompt,
-            ) as stream:
-                for event in stream:
-                    if event.type == "response.output_text.delta":
-                        yield event.delta
+                stream=True
+            )
+            for event in stream:
+                print(event)
 
-                response = stream.get_final_response()
+            # with client.responses.stream(
+            #     model=self.model,
+            #     instructions=rule,
+            #     input=prompt,
+            #     stream=True
+            # ) as stream:
+            #     for event in stream:
+            #         if event.type == "response.output_text.delta":
+            #             yield event.delta
+
+            #     response = stream.get_final_response()
         else:
             print("Connection to API failed")
             return ""
@@ -106,7 +116,7 @@ class LLM_API:
             for i in data.models[self.config.llm_service.status.type]:
                 if i.real_name==model:
                     return (
-                        True,
+                        i.state.lower()=="up",
                         i.state,
                         i.time_taken
                     )

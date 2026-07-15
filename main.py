@@ -45,12 +45,13 @@ def main():
 
     print(f'Prompt length lines: {len(contents)}')
 
-    api = LLM_API(config=yaml.config, model="MiniMaxAI/MiniMax-M3-MXFP8")
+    api = LLM_API(config=yaml.config, model="moonshotai/Kimi-K2.7-Code")
 
     result = ""
     try:
-        for chunk in api.request_stream(rule=rule, prompt=contents):
-            print(chunk, end="", flush=True)
+        result = api.request(rule=rule, prompt=contents)
+        # for chunk in api.request_stream(rule=rule, prompt=contents):
+        #     print(chunk, end="", flush=True)
     except ValueError as err:
         print(err)
 
