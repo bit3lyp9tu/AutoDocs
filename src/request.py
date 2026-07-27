@@ -45,6 +45,7 @@ class LLM_API:
                     model=self.model,
                     instructions=rule,
                     input=prompt,
+                    timeout=100
                 )
                 return response.output_text
 
@@ -63,7 +64,7 @@ class LLM_API:
         client = OpenAI(
             base_url=self.base_url,
             api_key=self.llm_key,
-            timeout=self.config.git.commit.timeout,
+            timeout=120,#self.config.git.commit.timeout,
             max_retries=5
         )
 
@@ -71,26 +72,45 @@ class LLM_API:
         if success:
             print(f"{self.model} [{status}] ({time_taken}s)")
 
-            stream = client.responses.create(
+            responses = client.responses
+            stream = responses.create(
                 model=self.model,
                 instructions=rule,
                 input=prompt,
                 stream=True
             )
             for event in stream:
-                print(event)
+                match event.type:
+                    case "response.output_text.delta":
+                        yield event.delta
 
-            # with client.responses.stream(
-            #     model=self.model,
-            #     instructions=rule,
-            #     input=prompt,
-            #     stream=True
-            # ) as stream:
-            #     for event in stream:
-            #         if event.type == "response.output_text.delta":
-            #             yield event.delta
+                    case "response.output_text.done":
+                        print("\nText complete")
 
-            #     response = stream.get_final_response()
+                    case "response.completed":
+                        response = event.response
+                        max_tokens = response.max_output_tokens
+                        if max_tokens:
+                            print(f"\nMax_Tokens: {max_tokens}")
+
+                        temp = response.temperature
+                        if max_tokens:
+                            print(f"Temperature: {temp}")
+
+                        usage = response.usage
+                        if usage:
+                            print(f"Input_Tokens:  {usage.input_tokens}")
+                            print(f"Output_Tokens: {usage.output_tokens}")
+                            print(f"Total_Tokens: {usage.total_tokens}")
+                            print("\n")
+
+                    case "response.error":
+                        print(event.error)
+
+                    case _:
+                        pass
+
+            return ""
         else:
             print("Connection to API failed")
             return ""

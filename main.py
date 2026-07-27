@@ -2,7 +2,8 @@ from pathlib import Path
 from time import sleep
 
 from src.config_parser import YAMLConfig
-from src.file_factory import FileReader, RecursiveSubdirectories, FileWriter
+from src.extraction_factory import Extraction
+from src.file_factory import FileReader, PromptReader, RecursiveSubdirectories, FileWriter
 from src.git_master import GitMaster
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
@@ -33,29 +34,48 @@ def main():
 
     yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
-    rule = "Create for each file a description. The description should be for dokumentnational purposes."
-    contents = []
+    prompt = PromptReader(
+        "prompts/docs_summary.md",
+        {"project_title": "Project"}
+    )
+    rule = prompt.getResolved()
 
-    root = Path(__file__).resolve().parent
-    directory = Path(root / 'tests/example_data/complex_example1')
-    for file in RecursiveSubdirectories(directory).children:
-        contents.append(file)
-        contents.append(FileReader(target_path=str(directory)+file).text)
-        contents.append("")
+    # print(prompt.getExtractedTagNames("UML_TAG_"))
 
-    print(f'Prompt length lines: {len(contents)}')
+    uml = Extraction(FileReader("tests/results/benchmarks/complex_project/doc_0.md").text).extractPlantUML()
+    print(uml)
 
-    api = LLM_API(config=yaml.config, model="moonshotai/Kimi-K2.7-Code")
+    # for i in range(len(model_list)):
+    #     print(f"##########################################################-{i}")
+    #     contents = []
 
-    result = ""
-    try:
-        result = api.request(rule=rule, prompt=contents)
-        # for chunk in api.request_stream(rule=rule, prompt=contents):
-        #     print(chunk, end="", flush=True)
-    except ValueError as err:
-        print(err)
+    #     root = Path(__file__).resolve().parent
+    #     directory = Path(root / 'tests/example_data/complex_example1')
+    #     for file in RecursiveSubdirectories(directory).children:
+    #         contents.append(file)
+    #         contents.append(FileReader(target_path=str(directory)+file).text)
+    #         contents.append("")
 
-    # FileWriter(target_path='tests/results/benchmarks/complex_project/doc_0.md', content=result)
+    #     print(f'Prompt length lines: {len(contents)}')
+
+    #     api = LLM_API(config=yaml.config, model=model_list[i])
+
+    #     result = ""
+    #     try:
+    #         result = api.request_stream(
+    #             rule=rule,
+    #             prompt=''.join(contents)
+    #         )
+    #         with open(f'tests/results/benchmarks/complex_project/doc_{i}.md', "w", encoding="utf-8") as f:
+    #             for chunk in result:
+    #                 f.write(chunk)
+    #     except ValueError as err:
+    #         print(err)
+
+    #     # print(result)
+    #     # FileWriter(target_path=f'tests/results/benchmarks/complex_project/doc_{i}.md', content=result)
+
+    #     sleep(yaml.config.llm_service.api.request_delay_seconds)
 
 
 if __name__ == "__main__":

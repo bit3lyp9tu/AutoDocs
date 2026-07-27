@@ -1,10 +1,37 @@
 import os
 from pathlib import Path
+import re
+
+from src.extraction_factory import Extraction
 
 class FileReader:
     def __init__(self, target_path) -> None:
         with open(target_path, 'r') as r:
             self.text = r.read()
+
+class PromptReader(FileReader):
+    def __init__(self, target_path, data: dict = {}) -> None:
+        super().__init__(target_path)
+        self.data = data
+
+    def getExtractedTags(self, tag_prefix) -> list[str]:
+        return Extraction(self.text).extractTags(tag_prefix)
+
+    def getExtractedTagNames(self, tag_prefix) -> list[str]:
+        return Extraction(self.text).extractTagNames(tag_prefix)
+
+    def getResolved(self) -> str:
+        result = self.text
+
+        for k,v in self.data.items():
+            identifier = "{{" + k + "}}"
+            result = result.replace(identifier, v)
+
+        match = re.findall(r'\{\{\w*\}\}', result)
+        if match:
+            raise ValueError(f"Unresolved identifier(s) found: {','.join(match)}")
+
+        return result
 
 
 class FileWriter:
