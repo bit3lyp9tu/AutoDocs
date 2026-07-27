@@ -12,3 +12,8 @@ dependencies = [
     "requests>=2.34.2",
     "types-pyyaml>=6.0.12.20260518",
 ]
+
+[dependency-groups]
+dev = [
+    "debugpy>=1.8.21",
+]

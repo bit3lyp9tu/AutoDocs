@@ -46,7 +46,7 @@ class LLM_API:
                     instructions=rule,
                     input=prompt,
                     timeout=200,
-                    temperature=1
+                    temperature=0.9
                 )
                 return response.output_text
 

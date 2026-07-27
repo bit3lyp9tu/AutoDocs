@@ -30,39 +30,58 @@ class Extraction:
     def extractTagNames(self, tag_prefix) -> list[str]:
         return [str(tag).replace('{{', '').replace('}}', '').replace(tag_prefix, '') for tag in re.findall(r'\{\{.*\}\}', self.text) if tag_prefix in tag]
 
-    def extractPlantUML(self):
-        grammar = r"""
-            start: PREFIX* block* PREFIX?
+    def extractPlantUML(self, tag_infix: str):
+        cleared_text = []
+        extraction: dict[str, str] = {}
+        full_tag = ""
+        pointer = -1
 
-            block: tag "```" LANGUAGE " " CONTENT "```"
+        lines = self.text.split("\n")
+        for i in range(len(lines)):
+            line: str = lines[i]
 
-            PREFIX: /.+[^\n\{\{]/
+            # start
+            if "```plantuml" in line:
+                if i > 0:
+                    full_tag = re.findall(r'\{\{TAG_\w+_\w+\}\}', lines[i-1])[0]
+                    if full_tag and str("{{TAG_" + tag_infix) in full_tag and i < len(lines) and "@startuml" in lines[i+1]:
+                        pointer = i
 
-            tag: "{{" TYPE "_" NAME "}}"
-            TYPE: /[A-Za-z_][A-Za-z0-9_]*/
-            NAME: /[A-Za-z_][A-Za-z0-9_]*/
+            # end
+            if "```" in line and "plantuml" not in line and pointer != -1:
+                if "@enduml" in lines[i-1]:
+                    if full_tag:
+                        sublist = lines[pointer:i+1]
+                        extraction[full_tag] = '\n'.join(sublist[1:-1])
 
-            LANGUAGE: /plantuml/
-            CONTENT: /.+[^```]/
+                        pointer = -1
+                        full_tag = ""
 
-            NEWLINE: /\n/
+            if pointer == -1 and "```" not in line:
+                cleared_text.append(line)
 
-            %import common.WS
-            %ignore WS
-        """
+        return extraction, '\n'.join(cleared_text)
 
-        parser = Lark(
-            grammar,
-            parser="cyk",
-            transformer=ToModels(),
-        )
+    def setPointersAll(self, text: str, keys: list[str], paths: dict[str, str], tag: str):
+        result = text
 
-        # document: Document = parser.parse(self.text)
-        # document.blocks
+        for k in keys:
+            uml_name = k.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "")
+            url = f"{paths[k]}/{uml_name}.puml"
+            alt = f"{uml_name}"
+            pattern = f"![{alt}]({url})"
 
-        tree = parser.parse(self.text)
-        document = ToModels().transform(tree)
+            result = result.replace(k, pattern)
 
-        document_dict = document.model_dump()
+        return result
 
-        return document_dict
+    def createPaths(self, keys: list[str], path: str, tag: str):
+        results: dict[str, str] = {}
+
+        for i in keys:
+            uml_name = i.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "")
+            url = f"{path}/{uml_name}.puml"
+
+            results[i] = url
+
+        return results

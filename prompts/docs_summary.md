@@ -24,4 +24,4 @@ Each component description should include:
 - a uml-class-diagramm in plantuml syntax explaining the components structure
 - if the content is suitable you may create additional diagrams in plantuml syntax
 
-Each time you are writing plantuml code, place the tag `{{UML_TAG_<name>}}` before. Give the tag an unique name.
+Each time you are writing plantuml code, place the tag `{{TAG_UML_<name>}}` before. Give the tag an unique name.

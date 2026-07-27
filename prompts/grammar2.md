@@ -1,4 +1,4 @@
-Based on the python code input, create a formal grammar schema for it.
+Based on the {{language}} code input, create a formal grammar schema for it.
 
 Follow the EBNF syntax for it:
 - ignore comments in code

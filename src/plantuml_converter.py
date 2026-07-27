@@ -78,6 +78,6 @@ class PlantUMLConverter:
 
         path = target_path
         try:
-            FileWriter(target_path=path, content=(result[0] if len(result) > 0 else ""))
+            FileWriter(target_path=path).write(content=(result[0] if len(result) > 0 else ""))
         except ValueError as err:
             print(err)

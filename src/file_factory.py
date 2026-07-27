@@ -35,15 +35,41 @@ class PromptReader(FileReader):
 
 
 class FileWriter:
-    def __init__(self, target_path, content="", mode='w') -> None:
-        if content == "":
-            raise ValueError(f"No content found to write into [{target_path}].")
+    def __init__(self, target_path, mode='w') -> None:
+        self.target_path = target_path
 
-        with open(target_path, mode) as f:
+        if mode not in ["a", "w", "w+"]:
+            raise ValueError(f"Unknown file mode: [{mode}]")
+        self.mode = mode
+
+    def write(self, content=""):
+        if content == "":
+            raise ValueError(f"No content found to write into [{self.target_path}].")
+
+        with open(self.target_path, self.mode) as f:
             f.write(content)
 
-        if not os.path.isfile(target_path):
-            raise FileNotFoundError(f"Creation of [{target_path}] failed.")
+        if not os.path.isfile(self.target_path):
+            raise FileNotFoundError(f"Creation of [{self.target_path}] failed.")
+
+
+class PUMLWriter(FileWriter):
+    def __init__(self, target_path: str, mode='w') -> None:
+
+        if not target_path.endswith(".puml"):
+            raise TypeError(f"The file should be a .puml file, [{target_path.split(".")[1]}] used")
+
+        super().__init__(target_path, mode)
+
+    def write(self, content=""):
+        if content == "":
+            raise ValueError(f"No content found to write into [{self.target_path}].")
+
+        with open(self.target_path, self.mode) as f:
+            f.write(content)
+
+        if not os.path.isfile(self.target_path):
+            raise FileNotFoundError(f"Creation of [{self.target_path}] failed.")
 
 
 class RecursiveSubdirectories:

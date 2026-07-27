@@ -6,7 +6,7 @@ from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 
 from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction
-from src.file_factory import FileReader, PromptReader, RecursiveSubdirectories, FileWriter
+from src.file_factory import FileReader, PUMLWriter, PromptReader, RecursiveSubdirectories, FileWriter
 from src.git_master import GitMaster
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
@@ -45,55 +45,23 @@ def main():
 
     # print(prompt.getExtractedTagNames("UML_TAG_"))
 
-    # uml = Extraction(FileReader("tests/results/benchmarks/complex_project/doc_0.md").text).extractPlantUML()
-    # print(uml)
-
-
 
     for i in range(len(model_list)):
-    #     print(f"##########################################################-{i}")
-    #     contents = []
+        print(f"##########################################################-{i}")
 
-    #     root = Path(__file__).resolve().parent
-    #     directory = Path(root / 'tests/example_data/complex_example1')
-    #     for file in RecursiveSubdirectories(directory).children:
-    #         contents.append(file)
-    #         contents.append(FileReader(target_path=str(directory)+file).text)
-    #         contents.append("")
-
-    #     print(f'Prompt length lines: {len(contents)}')
-
-    #     api = LLM_API(config=yaml.config, model=model_list[i])
-
-    #     result = ""
-    #     try:
-    #         result = api.request_stream(
-    #             rule=rule,
-    #             prompt=''.join(contents)
-    #         )
-    #         with open(f'tests/results/benchmarks/complex_project/doc_{i}.md', "w", encoding="utf-8") as f:
-    #             for chunk in result:
-    #                 f.write(chunk)
-    #     except ValueError as err:
-    #         print(err)
-
-    #     # print(result)
-    #     # FileWriter(target_path=f'tests/results/benchmarks/complex_project/doc_{i}.md', content=result)
-
-
-    # code = FileReader(target_path="tests/example_data/oop.py").text
+        # code = FileReader(target_path="tests/example_data/oop.py").text
         code = FileReader(target_path="src/umlblock_schema.py").text
 
         api = LLM_API(config=yaml.config, model=model_list[i])
         result = api.request(
-            rule=FileReader(target_path="prompts/grammar2.md").text,
+            rule=PromptReader(target_path="prompts/grammar2.md", data={"language": "python"}).getResolved(),
             prompt=code
         )
         # for chunk in stream:
         #      print(chunk, end="", flush=True)
 
         if result:
-            FileWriter(target_path=f"tests/results/benchmarks/grammars/grammar{i}.txt", content=result, mode="w+")
+            FileWriter(target_path=f"tests/results/benchmarks/grammars/grammar{i}.txt", mode="w+").write(content=result)
             print(result)
 
             try:
