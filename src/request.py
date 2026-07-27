@@ -45,7 +45,8 @@ class LLM_API:
                     model=self.model,
                     instructions=rule,
                     input=prompt,
-                    timeout=100
+                    timeout=200,
+                    temperature=1
                 )
                 return response.output_text
 
