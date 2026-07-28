@@ -18,14 +18,14 @@ def main():
     # print("Converting Code to PlantUML and rendering...")
 
     model_list = [
-        "google/gemma-4-31B-it",
-        "meta-llama/Llama-3.1-8B-Instruct",
-        "meta-llama/Llama-3.3-70B-Instruct",
-        "MiniMaxAI/MiniMax-M3-MXFP8",
+        # "google/gemma-4-31B-it",
+        # "meta-llama/Llama-3.1-8B-Instruct",
+        # "meta-llama/Llama-3.3-70B-Instruct",
+        # "MiniMaxAI/MiniMax-M3-MXFP8",
         "moonshotai/Kimi-K2.7-Code",
-        "openai/gpt-oss-120b",
-        "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-        "Qwen/Qwen3-VL-8B-Instruct",
+        # "openai/gpt-oss-120b",
+        # "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+        # "Qwen/Qwen3-VL-8B-Instruct",
         "zai-org/GLM-5.2-FP8"
     ]
         # "openGPT-X/Teuken-7B-instruct-v0.6",

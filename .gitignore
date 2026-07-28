@@ -16,3 +16,6 @@ resources/*.jar
 .vscode
 
 tests/results/benchmarks/*
+
+
+autodocs.yaml
