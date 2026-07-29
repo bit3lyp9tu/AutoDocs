@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from pathlib import Path
 import shutil
@@ -6,7 +7,7 @@ import subprocess
 
 from src.Docs import Docs
 from src.config_parser import YAMLConfig
-from src.file_factory import FileWriter
+from src.file_factory import FileWriter, PromptReader
 
 
 def __str2bool(v):
@@ -21,27 +22,60 @@ def __str2bool(v):
 def help():
     print("Helping...")
 
+PUML_DIR = "puml"
+IMG_DIR = "img"
+LLM_DIR = "llm_logs"
+LOG_DIR = "log"
+PROMPTS_DIR = "prompts"
+
 def init(args):
     print("Initializing environment...")
 
-    current_path = Path(__file__).resolve().parent
-    hasGitEnv = Path(current_path / '.git').exists() and Path(current_path / '.git').is_dir()
+    root_path = Path(__file__).resolve().parent
+    hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
 
     config_path = "tests/configs/autodocs.yaml"
     config = YAMLConfig(config_path)
-    config.createFile(Path(current_path / "autodocs.yaml"))
+    config.createFile(Path(root_path / "autodocs.yaml"))
 
     # create .autodocs directory and children (logs, cache, ...)
     print("Creating new .autodocs directory")
     os.mkdir(".autodocs")
 
-    docs = Docs(current_path, config_path)
+    # check env
+    if not Path(root_path / '.autodocs').exists() or not Path(root_path / '.autodocs').is_dir():
+        raise EnvironmentError(".autodocs/ not found")
+
+    autodocs_path = Path(root_path / ".autodocs")
+
+    config = YAMLConfig(config_path).config
+    os.mkdir(os.path.join(autodocs_path, PUML_DIR))
+    os.mkdir(os.path.join(autodocs_path, IMG_DIR))
+    os.mkdir(os.path.join(autodocs_path, LLM_DIR))
+    os.mkdir(os.path.join(autodocs_path, LOG_DIR))
+    os.mkdir(os.path.join(autodocs_path, PROMPTS_DIR))
+    # TODO: create required cache directory?
+
+    prompt = PromptReader(
+        "prompts/docs_summary.md",  # TODO: use path from config
+        {
+            "project_title": "Project"
+        }
+    )
+    setup = {
+        # "config_path": config_path, # ???
+        "path": str(autodocs_path),
+        "resolved_prompt": prompt.getResolved(),
+        "sessions": []
+    }
+    with open(str(Path(".autodocs/setup.json"))) as f:
+        f.write(json.dumps(setup))
 
     # add to .gitignore if in git env
     if hasGitEnv:
         print("Add files to .gitignore")
         FileWriter(
-            target_path=f'{current_path / ".gitignore"}',
+            target_path=f'{root_path / ".gitignore"}',
             mode='a'
         ).write(content='# AutoDocs\n.autodocs\n.autodocs/*')
 
@@ -49,7 +83,7 @@ def init(args):
     if args.git and hasGitEnv:
         print("Add to script to ./.git/hooks/prepare-commit-msg")
         FileWriter(
-            target_path=f'{current_path / "./.git/hooks/prepare-commit-msg"}',
+            target_path=f'{root_path / "./.git/hooks/prepare-commit-msg"}',
             mode='a'
         ).write(content=f'uv run python3 smart_commit.py .git/COMMIT_EDITMSG --config "autodocs.yaml"')
 
@@ -98,6 +132,22 @@ def remove(args):
             print(f"Removal of githook failed in .git/hooks/prepare-commit-msg: [{e}]")
 
 
+def run(args):
+    if True:
+        docs = Docs()
+
+        print("Requesting LLM docs...")
+        docs.createContent(args.code)
+
+        print("Creating PUML diagrams...")
+        docs.createPUML(args.docs_file)
+
+        print("Render PUML diagrams...")
+        docs.renderPUML()
+    else:
+        print("Environment is not initialized (see --help)")
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command', required=True)
@@ -109,6 +159,11 @@ def main():
     init_parser.add_argument('-g', '--git', type=__str2bool, default=True, help='Include git support features like commit msg generation')
     init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
     init_parser.set_defaults(func=init)
+
+    run_parser = subparser.add_parser('run', help='')
+    run_parser.add_argument('-c', '--code', type=str, default=".", help='Path to code base.')
+    run_parser.add_argument('-d', '--docs-file', type=str, default="docs.md", help='Path of code base documentation')
+    run_parser.set_defaults(func=run)
 
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root.')
     remove_parser.set_defaults(func=remove)

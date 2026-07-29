@@ -1,11 +1,12 @@
 
 from datetime import datetime
+import json
 import os
 from pathlib import Path
 
 from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction
-from src.file_factory import FileReader, PUMLWriter, PromptReader, RecursiveSubdirectories
+from src.file_factory import FileReader, FileWriter, PUMLWriter, PromptReader, RecursiveSubdirectories
 from src.rendering import PlantUMLRendering
 from src.request import LLM_API
 
@@ -18,35 +19,31 @@ class Docs:
     LOG_DIR = "log"
     PROMPTS_DIR = "prompts"
 
-    def __init__(self, root_path: Path, config_path='autodocs.yaml') -> None:
-        self.config = YAMLConfig(config_path).config
+    def __init__(self, setup_file='.autodocs/setup.json') -> None:
 
-        # check env
-        if not Path(root_path / '.autodocs').exists() or not Path(root_path / '.autodocs').is_dir():
-            raise EnvironmentError(".autodocs/ not found")
+        file = Path(str(setup_file))
+        if not file.exists() or not file.is_file() or not str(file).endswith("json"):
+            raise NameError(f"Setup file [{setup_file}] not found")
 
-        self.autodocs_path = Path(root_path / ".autodocs")
+        with open(setup_file) as f:
+            setup = json.loads(f.read())
 
-        os.mkdir(os.path.join(self.autodocs_path, self.PUML_DIR))
-        os.mkdir(os.path.join(self.autodocs_path, self.IMG_DIR))
-        os.mkdir(os.path.join(self.autodocs_path, self.LLM_DIR))
-        os.mkdir(os.path.join(self.autodocs_path, self.LOG_DIR))
-        os.mkdir(os.path.join(self.autodocs_path, self.PROMPTS_DIR))
-        # TODO: create required cache directory?
+        self.config_path = setup["config_path"]
+        self.autodocs_path = setup["autodocs_path"]
+        self.root_path = setup["config_path"]
+        self.rule = setup["resolved_prompt"]
+        self.sessions = setup["sessions"]
 
-        prompt = PromptReader(
-            "prompts/docs_summary.md",  # TODO: use path from config
-            {
-                "project_title": "Project"
-            }
-        )
-        self.rule = prompt.getResolved()
-        self.sessions: list[str] = []
+        self.config = YAMLConfig(self.config_path).config
 
 
-    def createContent(self, source_code_path: str, model: str):
+    def createContent(self, source_code_path: str, model: str = "MiniMaxAI/MiniMax-M3-MXFP8"):
         current_session = str(datetime.now())
         self.sessions.append(current_session)
+
+        with open(str(Path(".autodocs/setup.json"))) as f:
+            f.write(json.dumps(setup))
+
         target_file = f".autodocs/{self.LLM_DIR}/{current_session}.md"
 
         contents = []
@@ -75,7 +72,7 @@ class Docs:
             print(err)
 
 
-    def createPUML(self):
+    def createPUML(self, docs_file: str = "docs.md"):
         tag="UML"
         target_file = f".autodocs/{self.LLM_DIR}/{self.sessions[-1]}.md"
         puml_path = f".autodocs/{self.PUML_DIR}/{self.sessions[-1]}.puml"
@@ -101,6 +98,8 @@ class Docs:
         # TODO: add to log?
         for k, v in paths.items():
             PUMLWriter(target_path=v).write(umls[k])
+
+        FileWriter(docs_file).write(text)
 
 
     def renderPUML(self):

@@ -19,3 +19,6 @@ tests/results/benchmarks/*
 
 
 autodocs.yaml
+# AutoDocs
+.autodocs
+.autodocs/*
