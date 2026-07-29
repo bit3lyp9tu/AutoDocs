@@ -6,9 +6,10 @@ from pathlib import Path
 
 from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction
-from src.file_factory import FileReader, FileWriter, PUMLWriter, PromptReader, RecursiveSubdirectories
+from src.file_factory import FileReader, FileWriter, PUMLWriter, RecursiveSubdirectories
 from src.rendering import PlantUMLRendering
 from src.request import LLM_API
+from src.schemas.setup_schema import Setup
 
 
 class Docs:
@@ -20,38 +21,37 @@ class Docs:
     PROMPTS_DIR = "prompts"
 
     def __init__(self, setup_file='.autodocs/setup.json') -> None:
-
         file = Path(str(setup_file))
-        if not file.exists() or not file.is_file() or not str(file).endswith("json"):
+        if not file.exists() or not file.is_file() or not str(file).endswith(".json"):
             raise NameError(f"Setup file [{setup_file}] not found")
+        self.setup_file = setup_file
 
-        with open(setup_file) as f:
-            setup = json.loads(f.read())
+        with open(self.setup_file) as f:
+            self.setup = Setup.model_validate(json.loads(f.read()))
 
-        self.config_path = setup["config_path"]
-        self.autodocs_path = setup["autodocs_path"]
-        self.root_path = setup["config_path"]
-        self.rule = setup["resolved_prompt"]
-        self.sessions = setup["sessions"]
-
-        self.config = YAMLConfig(self.config_path).config
+        self.config = YAMLConfig(self.setup.config_path).config
 
 
     def createContent(self, source_code_path: str, model: str = "MiniMaxAI/MiniMax-M3-MXFP8"):
-        current_session = str(datetime.now())
-        self.sessions.append(current_session)
+        current_session = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.setup.sessions[current_session] = []
 
-        with open(str(Path(".autodocs/setup.json"))) as f:
-            f.write(json.dumps(setup))
+        os.mkdir(os.path.join((Path(self.setup.autodocs_path) / self.PUML_DIR), current_session))
+        os.mkdir(os.path.join((Path(self.setup.autodocs_path) / self.IMG_DIR), current_session))
+
+        self.save_setup()
 
         target_file = f".autodocs/{self.LLM_DIR}/{current_session}.md"
 
         contents = []
-        directory = Path(Path(__file__).resolve().parent / source_code_path)
-        for file in RecursiveSubdirectories(directory).children:
-            contents.append(file)
-            contents.append(FileReader(target_path=str(directory)+file).text)
-            contents.append("")
+        directory = Path(self.setup.root_path) / source_code_path
+        for file in RecursiveSubdirectories(Path(self.setup.root_path), directory, blacklist_path=".gitignore").paths:
+            full_path = directory / file
+            contents.extend([
+                file,
+                FileReader(str(full_path)).text,
+                ""
+            ])
 
         # TODO: meta data in log?
         print(f'Prompt length lines: {len(contents)}')
@@ -62,7 +62,7 @@ class Docs:
         result = ""
         try:
             result = api.request_stream(
-                rule=self.rule,
+                rule=self.setup.resolved_prompt,
                 prompt=''.join(contents)
             )
             with open(target_file, "w", encoding="utf-8") as f:
@@ -72,21 +72,25 @@ class Docs:
             print(err)
 
 
-    def createPUML(self, docs_file: str = "docs.md"):
+    def createPUML(self, docs_file: str = "docs.md", session: str = ""):
+        local_session = self.__validateSession(session)
+
         tag="UML"
-        target_file = f".autodocs/{self.LLM_DIR}/{self.sessions[-1]}.md"
-        puml_path = f".autodocs/{self.PUML_DIR}/{self.sessions[-1]}.puml"
+        target_file = f".autodocs/{self.LLM_DIR}/{local_session}.md"
+        puml_path = f".autodocs/{self.PUML_DIR}/{local_session}"
 
         # TODO: original target in log?
         extractor = Extraction(FileReader(target_path=target_file).text)
         umls, text = extractor.extractPlantUML(tag_infix=tag)
 
         # TODO: store in current session directory?
-        paths = extractor.createPaths(
+        paths, names = extractor.createPaths(
             keys=list(umls.keys()),
             tag=tag,
             path=puml_path
         )
+        self.setup.sessions[local_session] = names
+        self.save_setup()
 
         text = extractor.setPointersAll(
             text=text,
@@ -102,9 +106,30 @@ class Docs:
         FileWriter(docs_file).write(text)
 
 
-    def renderPUML(self):
-        source_file =  f".autodocs/{self.PUML_DIR}/{self.sessions[-1]}.puml"
-        target_path =  f".autodocs/{self.IMG_DIR}/{self.sessions[-1]}.png"
+    def renderPUML(self, session: str = ""):
+        local_session = self.__validateSession(session)
+
+        source_file =  f".autodocs/{self.PUML_DIR}/{local_session}/*.puml"
+        target_path =  Path(self.setup.root_path) / f".autodocs/{self.IMG_DIR}/{local_session}"
 
         plantuml = PlantUMLRendering(self.config, source_file)
-        plantuml.render(target_path)
+        plantuml.render(str(target_path))
+
+
+    def save_setup(self):
+        with open(self.setup_file, mode="w") as f:
+            f.write(
+                json.dumps(self.setup.model_dump(mode='json'),
+                indent=4,
+                sort_keys=False
+            ))
+
+
+    def __validateSession(self, session):
+        if session:
+            if session in self.setup.sessions.keys():
+                return session
+            else:
+                raise KeyError(session)
+        else:
+            return list(self.setup.sessions.keys())[-1]

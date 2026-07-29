@@ -1,6 +1,6 @@
 import subprocess
 
-from src.config_model import Config
+from src.schemas.config_model import Config
 
 
 class PlantUMLRendering:
@@ -25,7 +25,7 @@ class PlantUMLRendering:
             if e.returncode == 50 or e.returncode == 100:
                 print("PlantUML renderer could not find file")
             elif e.returncode == 200:
-                print("File contains syntax error")
+                print(f"File [{self.source_file}] contains syntax error")
             else:
                 print(f"PlantUML failed to render, Exit code: {e.returncode}")
                 print(f"stderr: {e.stderr}")

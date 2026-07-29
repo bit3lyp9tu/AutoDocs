@@ -4,7 +4,7 @@ import shlex
 from subprocess import call
 import tempfile
 
-from src.config_model import Config
+from src.schemas.config_model import Config
 
 
 class TerminalMaster:

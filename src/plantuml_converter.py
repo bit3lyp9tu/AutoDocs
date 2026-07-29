@@ -1,6 +1,6 @@
 import re
 
-from src.config_model import Config
+from src.schemas.config_model import Config
 from src.file_factory import FileReader, FileWriter
 from src.request import LLM_API
 

@@ -20,6 +20,7 @@ def __str2bool(v):
     raise argparse.ArgumentTypeError("Boolean value expected.")
 
 def help():
+    # TODO: resume
     print("Helping...")
 
 PUML_DIR = "puml"
@@ -29,11 +30,15 @@ LOG_DIR = "log"
 PROMPTS_DIR = "prompts"
 
 def init(args):
+    # TODO: move to single class
     print("Initializing environment...")
 
     root_path = Path(__file__).resolve().parent
+    # TODO: add as setup parameter
     hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
 
+    # TODO: fix strange yaml dump
+    # TODO: use dynamic path
     config_path = "tests/configs/autodocs.yaml"
     config = YAMLConfig(config_path)
     config.createFile(Path(root_path / "autodocs.yaml"))
@@ -56,20 +61,27 @@ def init(args):
     os.mkdir(os.path.join(autodocs_path, PROMPTS_DIR))
     # TODO: create required cache directory?
 
-    prompt = PromptReader(
-        "prompts/docs_summary.md",  # TODO: use path from config
-        {
-            "project_title": "Project"
-        }
+    with open(".autodocs/setup.json", mode="w") as f:
+        # TODO: change json to class?
+        f.write(json.dumps(
+            {
+                "config_path": config_path,
+                "root_path": str(root_path),
+                "autodocs_path": str(autodocs_path),
+                "resolved_prompt": PromptReader(
+                    "prompts/docs_summary.md",  # TODO: use path from config
+                    {
+                        "project_title": "Project"
+                    }
+                ).getResolved(),
+                "sessions": {}
+            },
+            indent=4,
+            sort_keys=False
+        )
     )
-    setup = {
-        # "config_path": config_path, # ???
-        "path": str(autodocs_path),
-        "resolved_prompt": prompt.getResolved(),
-        "sessions": []
-    }
-    with open(str(Path(".autodocs/setup.json"))) as f:
-        f.write(json.dumps(setup))
+
+    # TODO: copy docs_summary.md prompt to .autodocs/prompts
 
     # add to .gitignore if in git env
     if hasGitEnv:
@@ -133,6 +145,8 @@ def remove(args):
 
 
 def run(args):
+
+    # TODO: check if init exists
     if True:
         docs = Docs()
 
@@ -156,13 +170,19 @@ def main():
     help_parser.set_defaults(func=lambda args: help())
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
-    init_parser.add_argument('-g', '--git', type=__str2bool, default=True, help='Include git support features like commit msg generation')
+    # TODO: add config path parameter
+    init_parser.add_argument('-g', '--git', type=__str2bool, default=False, help='Include git support features like commit msg generation')
+    # TODO: redundant to subparser run?
     init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
     init_parser.set_defaults(func=init)
 
     run_parser = subparser.add_parser('run', help='')
-    run_parser.add_argument('-c', '--code', type=str, default=".", help='Path to code base.')
+    run_parser.add_argument('-c', '--code', type=str, default="src", help='Path to code base.')
+    # TODO: add ai disclaimer to summary
     run_parser.add_argument('-d', '--docs-file', type=str, default="docs.md", help='Path of code base documentation')
+    # TODO: add argument --all?
+    # TODO: add argument --extract <session>?
+    # TODO: --render <session> in single subparser?
     run_parser.set_defaults(func=run)
 
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root.')

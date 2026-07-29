@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import re
 
+from pathspec import PathSpec
+from pathspec.patterns.gitwildmatch import GitWildMatchPattern
+
 from src.extraction_factory import Extraction
 
 class FileReader:
@@ -73,16 +76,31 @@ class PUMLWriter(FileWriter):
 
 
 class RecursiveSubdirectories:
-    def __init__(self, directory: Path, allowOnlyFiles=True) -> None:
+    def __init__(self, root: Path, directory: Path, blacklist_path="") -> None:
         self.directory = directory
-        self.allowOnlyFiles = allowOnlyFiles
 
-        children = []
-        for child in directory.rglob("*"):
-            if child.is_file():
-                children.append(str(child).replace(str(directory), ''))
-            else:
-                if child.is_dir() and not self.allowOnlyFiles:
-                    children.append(str(child).replace(str(directory), ''))
+        paths: list[str] = []
+        if blacklist_path:
+            full_blacklist_path = Path(root / blacklist_path)
+            if not full_blacklist_path.exists() and full_blacklist_path.is_file():
+                raise FileNotFoundError(str(full_blacklist_path))
 
-        self.children = children
+            spec = PathSpec.from_lines(
+                GitWildMatchPattern,
+                open(full_blacklist_path)
+            )
+            for path in directory.rglob("*"):
+                if not path.is_file():
+                    continue
+                rel = path.relative_to(directory).as_posix()
+                if spec.match_file(rel):
+                    continue
+                paths.append(rel)
+        else:
+            for path in directory.rglob("*"):
+                if not path.is_file():
+                    continue
+                rel = path.relative_to(directory).as_posix()
+                paths.append(rel)
+
+        self.paths = paths

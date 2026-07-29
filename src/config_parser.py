@@ -1,6 +1,6 @@
 import yaml
 
-from src.config_model import Config
+from src.schemas.config_model import Config
 from src.file_factory import FileWriter
 
 

@@ -5,8 +5,8 @@ from openai import APIConnectionError, OpenAI, PermissionDeniedError
 from pydantic import ValidationError
 import requests
 
-from src.config_model import Config
-from src.state_schemas import Model, ScadsAIModelsStatus
+from src.schemas.config_model import Config
+from src.schemas.state_schemas import Model, ScadsAIModelsStatus
 
 
 class LLM_API:

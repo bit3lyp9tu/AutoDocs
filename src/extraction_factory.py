@@ -2,7 +2,7 @@ import re
 
 from lark import Lark, Transformer
 
-from src.umlblock_schema import Tag, Block, Document
+from src.schemas.umlblock_schema import Tag, Block, Document
 
 
 class ToModels(Transformer):
@@ -22,7 +22,7 @@ class ToModels(Transformer):
 
 class Extraction:
     def __init__(self, text) -> None:
-        self.text = text
+        self.text: str = text
 
     def extractTags(self, tag_prefix) -> list[str]:
         return [tag for tag in re.findall(r'\{\{.*\}\}', self.text) if tag_prefix in tag]
@@ -36,14 +36,24 @@ class Extraction:
         full_tag = ""
         pointer = -1
 
-        lines = self.text.split("\n")
+        if not re.search(r'\{\{TAG_UML_\w+\}\}', self.text):
+            return {}, self.text
+
+        lines = [line.strip() for line in self.text.splitlines()]
         for i in range(len(lines)):
             line: str = lines[i]
 
             # start
             if "```plantuml" in line:
                 if i > 0:
-                    full_tag = re.findall(r'\{\{TAG_\w+_\w+\}\}', lines[i-1])[0]
+                    found_tags = re.findall(r'\{\{TAG_UML_\w+\}\}', lines[i-1])
+                    if len(found_tags) > 0:
+                        full_tag = found_tags[0]
+                    elif len(re.findall(r'\{\{TAG_UML_\w+\}\}', lines[i-2])) > 0:
+                        full_tag = re.findall(r'\{\{TAG_UML_\w+\}\}', lines[i-2])[0]
+                    else:
+                        continue
+
                     if full_tag and str("{{TAG_" + tag_infix) in full_tag and i < len(lines) and "@startuml" in lines[i+1]:
                         pointer = i
 
@@ -67,7 +77,7 @@ class Extraction:
 
         for k in keys:
             uml_name = k.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "")
-            url = f"{paths[k]}/{uml_name}.puml"
+            url = f"{paths[k]}"
             alt = f"{uml_name}"
             pattern = f"![{alt}]({url})"
 
@@ -77,11 +87,13 @@ class Extraction:
 
     def createPaths(self, keys: list[str], path: str, tag: str):
         results: dict[str, str] = {}
+        names: list[str] = []
 
         for i in keys:
             uml_name = i.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "")
             url = f"{path}/{uml_name}.puml"
 
             results[i] = url
+            names.append(uml_name)
 
-        return results
+        return results, names

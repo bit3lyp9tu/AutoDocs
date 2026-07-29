@@ -1,5 +1,6 @@
 # Python-generated files
 __pycache__/
+**/__pycache__/
 *.py[oc]
 build/
 dist/
@@ -19,6 +20,8 @@ tests/results/benchmarks/*
 
 
 autodocs.yaml
+docs.md
+
 # AutoDocs
 .autodocs
 .autodocs/*
