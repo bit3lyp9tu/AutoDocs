@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from src.Docs import Docs
-from src.config_parser import YAMLConfig
+from src.config_parser import ConfigError, JSONConfig, YAMLConfig
 from src.file_factory import FileWriter, PromptReader
 
 
@@ -37,7 +37,6 @@ def init(args):
     # TODO: add as setup parameter
     hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
 
-    # TODO: fix strange yaml dump
     # TODO: use dynamic path
     config_path = "tests/configs/autodocs.yaml"
     config = YAMLConfig(config_path)
@@ -52,14 +51,29 @@ def init(args):
         raise EnvironmentError(".autodocs/ not found")
 
     autodocs_path = Path(root_path / ".autodocs")
-
-    config = YAMLConfig(config_path).config
     os.mkdir(os.path.join(autodocs_path, PUML_DIR))
     os.mkdir(os.path.join(autodocs_path, IMG_DIR))
     os.mkdir(os.path.join(autodocs_path, LLM_DIR))
     os.mkdir(os.path.join(autodocs_path, LOG_DIR))
     os.mkdir(os.path.join(autodocs_path, PROMPTS_DIR))
     # TODO: create required cache directory?
+
+    replacement_data = {
+        "project_title": "Project",
+        "LLM_MODEL": "MiniMaxAI/MiniMax-M3-MXFP8"
+    }
+
+    # TODO: append doc header
+    docs_header = PromptReader(
+        "prompts/docs_header.md",   # TODO: use path from config
+        replacement_data
+    )
+
+    # TODO: append doc header
+    prompt = PromptReader(
+        "prompts/docs_summary.md",  # TODO: use path from config
+        replacement_data
+    )
 
     with open(".autodocs/setup.json", mode="w") as f:
         # TODO: change json to class?
@@ -68,12 +82,8 @@ def init(args):
                 "config_path": config_path,
                 "root_path": str(root_path),
                 "autodocs_path": str(autodocs_path),
-                "resolved_prompt": PromptReader(
-                    "prompts/docs_summary.md",  # TODO: use path from config
-                    {
-                        "project_title": "Project"
-                    }
-                ).getResolved(),
+                "resolved_prompt": prompt.getResolved(),
+                "docs_header": docs_header.getResolved(),
                 "sessions": {}
             },
             indent=4,
@@ -81,7 +91,8 @@ def init(args):
         )
     )
 
-    # TODO: copy docs_summary.md prompt to .autodocs/prompts
+    FileWriter(".autodocs/prompts/docs_header.md").write(docs_header.text)
+    FileWriter(".autodocs/prompts/docs_summary.md").write(prompt.text)
 
     # add to .gitignore if in git env
     if hasGitEnv:
@@ -149,20 +160,41 @@ def run(args):
     # TODO: check if init exists
     if True:
         docs = Docs()
+        execution_layer = 0
 
-        print("Requesting LLM docs...")
-        docs.createContent(args.code)
+        match args.mode:
+            case "all":
+                execution_layer = 0
+            case "extract":
+                execution_layer = 1
+            case "render":
+                execution_layer = 2
 
-        print("Creating PUML diagrams...")
-        docs.createPUML(args.docs_file)
+        if execution_layer <= 0:
+            print("Requesting LLM docs...")
+            docs.createContent(args.code)
 
-        print("Render PUML diagrams...")
-        docs.renderPUML()
+        if execution_layer <= 1:
+            print("Creating PUML diagrams...")
+            docs.createPUML(args.docs_file, args.session)
+
+        if execution_layer <= 2:
+            print("Render PUML diagrams...")
+            docs.renderPUML(args.session)
+
     else:
         print("Environment is not initialized (see --help)")
 
 
 def main():
+
+    sessions = []
+    try:
+        setup = JSONConfig(".autodocs/setup.json")
+        sessions = setup.config.sessions
+    except( ConfigError, FileNotFoundError) as e:
+        print(e)
+
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command', required=True)
 
@@ -172,17 +204,18 @@ def main():
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
     # TODO: add config path parameter
     init_parser.add_argument('-g', '--git', type=__str2bool, default=False, help='Include git support features like commit msg generation')
-    # TODO: redundant to subparser run?
+    # TODO: redundant to subparser 'run'?
     init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
     init_parser.set_defaults(func=init)
 
     run_parser = subparser.add_parser('run', help='')
-    run_parser.add_argument('-c', '--code', type=str, default="src", help='Path to code base.')
+    run_parser.add_argument('-c', '--code', type=str, default="", help='Path to code base.')
     # TODO: add ai disclaimer to summary
     run_parser.add_argument('-d', '--docs-file', type=str, default="docs.md", help='Path of code base documentation')
-    # TODO: add argument --all?
-    # TODO: add argument --extract <session>?
-    # TODO: --render <session> in single subparser?
+    run_parser.add_argument('-s', '--session', type=str, default='', choices=sessions, help='Specify used session (default: last session)')
+
+    run_parser.add_argument('-m', '--mode', type=str, default='all', choices=["all", "extract", "render"], help='')
+
     run_parser.set_defaults(func=run)
 
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root.')

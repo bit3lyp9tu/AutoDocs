@@ -1,15 +1,13 @@
 
 from datetime import datetime
-import json
 import os
 from pathlib import Path
 
-from src.config_parser import YAMLConfig
+from src.config_parser import JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, FileWriter, PUMLWriter, RecursiveSubdirectories
 from src.rendering import PlantUMLRendering
 from src.request import LLM_API
-from src.schemas.setup_schema import Setup
 
 
 class Docs:
@@ -24,28 +22,26 @@ class Docs:
         file = Path(str(setup_file))
         if not file.exists() or not file.is_file() or not str(file).endswith(".json"):
             raise NameError(f"Setup file [{setup_file}] not found")
+
         self.setup_file = setup_file
-
-        with open(self.setup_file) as f:
-            self.setup = Setup.model_validate(json.loads(f.read()))
-
+        self.setup = JSONConfig(setup_file)
         self.config = YAMLConfig(self.setup.config_path).config
 
 
     def createContent(self, source_code_path: str, model: str = "MiniMaxAI/MiniMax-M3-MXFP8"):
         current_session = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        self.setup.sessions[current_session] = []
+        self.setup.config.sessions[current_session] = []
 
-        os.mkdir(os.path.join((Path(self.setup.autodocs_path) / self.PUML_DIR), current_session))
-        os.mkdir(os.path.join((Path(self.setup.autodocs_path) / self.IMG_DIR), current_session))
+        os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.PUML_DIR), current_session))
+        os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.IMG_DIR), current_session))
 
         self.save_setup()
 
         target_file = f".autodocs/{self.LLM_DIR}/{current_session}.md"
 
         contents = []
-        directory = Path(self.setup.root_path) / source_code_path
-        for file in RecursiveSubdirectories(Path(self.setup.root_path), directory, blacklist_path=".gitignore").paths:
+        directory = Path(self.setup.config.root_path) / source_code_path
+        for file in RecursiveSubdirectories(Path(self.setup.config.root_path), directory, blacklist_path=".gitignore").paths:
             full_path = directory / file
             contents.extend([
                 file,
@@ -62,7 +58,7 @@ class Docs:
         result = ""
         try:
             result = api.request_stream(
-                rule=self.setup.resolved_prompt,
+                rule=self.setup.config.resolved_prompt,
                 prompt=''.join(contents)
             )
             with open(target_file, "w", encoding="utf-8") as f:
@@ -72,7 +68,7 @@ class Docs:
             print(err)
 
 
-    def createPUML(self, docs_file: str = "docs.md", session: str = ""):
+    def createPUML(self, docs_file: str = "docs.md", session: str = "", docsHeader: str = ""):
         local_session = self.__validateSession(session)
 
         tag="UML"
@@ -89,7 +85,7 @@ class Docs:
             tag=tag,
             path=puml_path
         )
-        self.setup.sessions[local_session] = names
+        self.setup.config.sessions[local_session] = names
         self.save_setup()
 
         text = extractor.setPointersAll(
@@ -103,33 +99,30 @@ class Docs:
         for k, v in paths.items():
             PUMLWriter(target_path=v).write(umls[k])
 
-        FileWriter(docs_file).write(text)
+        input = docsHeader + "\n" + text
+        FileWriter(docs_file).write(input)
 
 
     def renderPUML(self, session: str = ""):
         local_session = self.__validateSession(session)
 
+        # TODO: do not use glob, iterate manually (for log entries)
         source_file =  f".autodocs/{self.PUML_DIR}/{local_session}/*.puml"
-        target_path =  Path(self.setup.root_path) / f".autodocs/{self.IMG_DIR}/{local_session}"
+        target_path =  Path(self.setup.config.root_path) / f".autodocs/{self.IMG_DIR}/{local_session}"
 
         plantuml = PlantUMLRendering(self.config, source_file)
         plantuml.render(str(target_path))
 
 
     def save_setup(self):
-        with open(self.setup_file, mode="w") as f:
-            f.write(
-                json.dumps(self.setup.model_dump(mode='json'),
-                indent=4,
-                sort_keys=False
-            ))
+        self.setup.createFile(self.setup_file)
 
 
     def __validateSession(self, session):
         if session:
-            if session in self.setup.sessions.keys():
+            if session in self.setup.config.sessions.keys():
                 return session
             else:
                 raise KeyError(session)
         else:
-            return list(self.setup.sessions.keys())[-1]
+            return list(self.setup.config.sessions.keys())[-1]

@@ -8,6 +8,7 @@ class Setup(BaseModel):
     root_path: str
     autodocs_path: str = ".autodocs"
     resolved_prompt: str
+    docs_header: str
     sessions: dict[str, list[str]]
 
     @field_validator("config_path")

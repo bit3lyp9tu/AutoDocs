@@ -4,7 +4,6 @@
 
 ## Here is what you should do:
 
-Use this project title: `{{project_title}}`
 Outline the general workflow in a sequence diagram using plantuml syntax.
 If appropriate, use other UML diagrams to describe general information about the project, using plantuml syntax.
 At the start summarize what the project does, then follow the following steps:
