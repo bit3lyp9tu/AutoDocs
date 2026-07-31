@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from pathlib import Path
 
@@ -5,14 +6,15 @@ from openai import APIConnectionError, OpenAI, PermissionDeniedError
 from pydantic import ValidationError
 import requests
 
-from src.schemas.config_model import Config
+from src.schemas.config_model import ConfigSchema
 from src.schemas.state_schemas import Model, ScadsAIModelsStatus
 
 
 class LLM_API:
-    def __init__(self, config: Config, model="") -> None:
+    def __init__(self, config: ConfigSchema, model="") -> None:
         self.config = config
         self.base_url = self.config.llm_service.api.base_url
+        self.meta_data: dict = {}
 
         if not self.config.llm_service.api.key_value:
             key_location = str(self.config.llm_service.api.key_location)
@@ -38,7 +40,7 @@ class LLM_API:
 
         success, status, time_taken = self.check_model_status(model=self.model)
         if success:
-            print(f"{self.model} [{status}] ({time_taken}s)")
+            print(f"Ping: {self.model} [{status}] ({time_taken}s)")
 
             try:
                 response = client.responses.create(
@@ -71,7 +73,11 @@ class LLM_API:
 
         success, status, time_taken = self.check_model_status(model=self.model)
         if success:
-            print(f"{self.model} [{status}] ({time_taken}s)")
+            print(f"Ping: {self.model} [{status}] ({time_taken}s)")
+
+            self.meta_data["model_name"] = self.model
+
+            time = datetime.now()
 
             responses = client.responses
             stream = responses.create(
@@ -92,24 +98,24 @@ class LLM_API:
                         response = event.response
                         max_tokens = response.max_output_tokens
                         if max_tokens:
-                            print(f"\nMax_Tokens: {max_tokens}")
+                            self.meta_data["max_tokens"] = max_tokens
 
                         temp = response.temperature
                         if max_tokens:
-                            print(f"Temperature: {temp}")
+                            self.meta_data["temperature"] = temp
 
                         usage = response.usage
                         if usage:
-                            print(f"Input_Tokens:  {usage.input_tokens}")
-                            print(f"Output_Tokens: {usage.output_tokens}")
-                            print(f"Total_Tokens: {usage.total_tokens}")
-                            print("\n")
+                            self.meta_data["input_tokens"] = usage.input_tokens
+                            self.meta_data["output_tokens"] = usage.output_tokens
+                            self.meta_data["total_tokens"] = usage.total_tokens
 
                     case "response.error":
-                        print(event.error)
-
+                        self.meta_data["error_msg"] = event.error
                     case _:
                         pass
+
+            self.meta_data["response_time_seconds"] = round((datetime.now() - time).total_seconds(), 2)
 
             return ""
         else:

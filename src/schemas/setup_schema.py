@@ -2,14 +2,28 @@ from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
+class MetaData(BaseModel):
+    model_name: str = ""
+    temperature: float = -1.0
+    max_tokens: int = -1
+    input_tokens: int = -1
+    output_tokens: int = -1
+    total_tokens: int = -1
+    response_time_seconds: float = -1.0
+    error_msg: str = ""
 
-class Setup(BaseModel):
+class Session(BaseModel):
+    meta_data: MetaData | None = None
+    content: list[str] = []
+
+class SetupSchema(BaseModel):
     config_path: str = "autodocs.yaml"
     root_path: str
     autodocs_path: str = ".autodocs"
     resolved_prompt: str
-    docs_header: str
-    sessions: dict[str, list[str]]
+    docs_header: str = ""
+    docs_footer: str = ""
+    sessions: dict[str, Session | None]
 
     @field_validator("config_path")
     @classmethod

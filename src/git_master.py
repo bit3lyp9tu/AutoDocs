@@ -1,11 +1,11 @@
 
 import subprocess
 
-from src.schemas.config_model import Config
+from src.schemas.config_model import ConfigSchema
 
 
 class GitMaster:
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: ConfigSchema) -> None:
         self.config = config
 
     def diff(self):

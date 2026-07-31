@@ -95,7 +95,7 @@ class GitCommit(BaseModel):
 class Git(BaseModel):
     commit: GitCommit
 
-class Config(BaseModel):
+class ConfigSchema(BaseModel):
     llm_service: LLMService
     autodocs: AutoDocs
     git: Git

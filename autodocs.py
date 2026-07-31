@@ -7,7 +7,7 @@ import subprocess
 
 from src.Docs import Docs
 from src.config_parser import ConfigError, JSONConfig, YAMLConfig
-from src.file_factory import FileWriter, PromptReader
+from src.file_factory import FileReader, FileWriter, PromptReader
 
 
 def __str2bool(v):
@@ -30,6 +30,8 @@ LOG_DIR = "log"
 PROMPTS_DIR = "prompts"
 
 def init(args):
+    config_path = args.config_path if args.config_path else "tests/configs/autodocs.yaml"
+
     # TODO: move to single class
     print("Initializing environment...")
 
@@ -37,8 +39,6 @@ def init(args):
     # TODO: add as setup parameter
     hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
 
-    # TODO: use dynamic path
-    config_path = "tests/configs/autodocs.yaml"
     config = YAMLConfig(config_path)
     config.createFile(Path(root_path / "autodocs.yaml"))
 
@@ -63,15 +63,18 @@ def init(args):
         "LLM_MODEL": "MiniMaxAI/MiniMax-M3-MXFP8"
     }
 
-    # TODO: append doc header
     docs_header = PromptReader(
         "prompts/docs_header.md",   # TODO: use path from config
         replacement_data
     )
 
-    # TODO: append doc header
     prompt = PromptReader(
         "prompts/docs_summary.md",  # TODO: use path from config
+        replacement_data
+    )
+
+    docs_footer = PromptReader(
+        "prompts/docs_footer.md",
         replacement_data
     )
 
@@ -84,6 +87,7 @@ def init(args):
                 "autodocs_path": str(autodocs_path),
                 "resolved_prompt": prompt.getResolved(),
                 "docs_header": docs_header.getResolved(),
+                "docs_footer": docs_footer.getResolved(),
                 "sessions": {}
             },
             indent=4,
@@ -93,6 +97,11 @@ def init(args):
 
     FileWriter(".autodocs/prompts/docs_header.md").write(docs_header.text)
     FileWriter(".autodocs/prompts/docs_summary.md").write(prompt.text)
+    # TODO: BUG- if file empty error when autodocs remove
+    # FileWriter(".autodocs/prompts/docs_footer.md").write(docs_footer.text)
+
+    # TODO: use path from config
+    # FileWriter(".autodocs/.autodocs-ignore").write(FileReader(".gitignore").text)
 
     # add to .gitignore if in git env
     if hasGitEnv:
@@ -203,18 +212,25 @@ def main():
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
     # TODO: add config path parameter
+    init_parser.add_argument('-c', '--config-path', type=str, default="", help='Path to default autodocs.yaml config')
     init_parser.add_argument('-g', '--git', type=__str2bool, default=False, help='Include git support features like commit msg generation')
     # TODO: redundant to subparser 'run'?
     init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
     init_parser.set_defaults(func=init)
 
+    # TODO: add --reload-setup subparser to newly initialize the setup.json config
+
     run_parser = subparser.add_parser('run', help='')
+
+    # rename to --source-code?
     run_parser.add_argument('-c', '--code', type=str, default="", help='Path to code base.')
     # TODO: add ai disclaimer to summary
     run_parser.add_argument('-d', '--docs-file', type=str, default="docs.md", help='Path of code base documentation')
     run_parser.add_argument('-s', '--session', type=str, default='', choices=sessions, help='Specify used session (default: last session)')
 
     run_parser.add_argument('-m', '--mode', type=str, default='all', choices=["all", "extract", "render"], help='')
+
+    # TODO: add --vim-edit, if mode=extract, user can edit the API result before extraction/processing
 
     run_parser.set_defaults(func=run)
 

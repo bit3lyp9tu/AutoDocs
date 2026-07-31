@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 from time import sleep
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
@@ -84,5 +85,9 @@ def main():
         sleep(yaml.config.llm_service.api.request_delay_seconds)
 
 
+def test():
+    pass
+
 if __name__ == "__main__":
     main()
+    test()

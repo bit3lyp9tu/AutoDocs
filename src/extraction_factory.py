@@ -30,6 +30,47 @@ class Extraction:
     def extractTagNames(self, tag_prefix) -> list[str]:
         return [str(tag).replace('{{', '').replace('}}', '').replace(tag_prefix, '') for tag in re.findall(r'\{\{.*\}\}', self.text) if tag_prefix in tag]
 
+    def extractThinkTagPrefix(self, text: str, tag=r'mm\:think'):
+        think_text_lines = []
+        clean_answer_lines = []
+
+        prefix_line = ""
+        suffix_line = ""
+
+        if not re.search(r'\<mm:think\>', text) and not re.search(r'\<\/mm:think\>', text):
+            return "", text
+
+        lines = text.split("\n")
+        for i in range(len(lines)):
+            line = lines[i]
+
+            # find start tag
+            line_tag_prefix = re.findall(r'\<\/mm:think\>.*', line)
+            if line_tag_prefix and len(line_tag_prefix) > 0:
+                prefix_line = line_tag_prefix[0]
+                # think_text_lines.append(prefix_line)
+
+            # find end tag
+            line_tag_suffix = re.findall(r'.*\<\/mm:think\>', line)
+            if line_tag_prefix and line_tag_suffix and len(line_tag_suffix) > 0:
+                suffix_line = line_tag_suffix[0]
+                think_text_lines.append(suffix_line)
+                prefix_line = ""
+
+                # find text of line after tag
+                clean_answer_suffix = re.findall(r'(?<=\<\/mm:think\>).*', line)
+                if clean_answer_suffix and len(clean_answer_suffix) > 0:
+                    clean_answer_lines.append(clean_answer_suffix[0])
+
+            if not line_tag_prefix and not line_tag_suffix: # if start and end tag not in line
+                if not prefix_line and suffix_line:
+                    # after end tag
+                    clean_answer_lines.append(line)
+                else:
+                    think_text_lines.append(line)
+
+        return '\n'.join(think_text_lines), '\n'.join(clean_answer_lines)
+
     def extractPlantUML(self, tag_infix: str):
         cleared_text = []
         extraction: dict[str, str] = {}

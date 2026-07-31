@@ -4,11 +4,11 @@ import shlex
 from subprocess import call
 import tempfile
 
-from src.schemas.config_model import Config
+from src.schemas.config_model import ConfigSchema
 
 
 class TerminalMaster:
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: ConfigSchema) -> None:
         self.config = config
 
 

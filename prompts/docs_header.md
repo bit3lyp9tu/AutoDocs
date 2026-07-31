@@ -1,3 +1,3 @@
 # Documentation of `{{project_title}}`
 
-**Disclaimer:** This documentation was created by a LLM *(`{{LLM_MODEL}}`)*, there may be some errors.
+**Note:** This documentation was created by AutoDocs, which uses a LLM `{{LLM_MODEL}}` to generate the documentation. Errors may occur.

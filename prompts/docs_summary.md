@@ -4,8 +4,19 @@
 
 ## Here is what you should do:
 
+Answer in a formal and informative style.
+Since the task is to write a documentation, return *only* the documentation, no other personal insertion are allowed from.
+
 Outline the general workflow in a sequence diagram using plantuml syntax.
-If appropriate, use other UML diagrams to describe general information about the project, using plantuml syntax.
+If appropriate, use other UML diagrams to describe general information about the project, using plantuml syntax. For clarification make sure to lable each arrow, association, etc. you are making.
+Always display plantuml syntax in a markdown codeblock:
+{{TAG_UML_<name>}}
+```plantuml
+@startuml
+% ...
+@enduml
+```
+
 At the start summarize what the project does, then follow the following steps:
 
 Repeat this for each package:

@@ -1,12 +1,12 @@
 import re
 
-from src.schemas.config_model import Config
+from src.schemas.config_model import ConfigSchema
 from src.file_factory import FileReader, FileWriter
 from src.request import LLM_API
 
 
 class PlantUMLConverter:
-    def __init__(self, config: Config, model="meta-llama/Llama-3.3-70B-Instruct") -> None:
+    def __init__(self, config: ConfigSchema, model="meta-llama/Llama-3.3-70B-Instruct") -> None:
         self.config = config
         self.model = model
 
