@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from openai import APIConnectionError, OpenAI, PermissionDeniedError
 from pydantic import ValidationError
@@ -29,6 +30,8 @@ class LLM_API:
             self.model = self.config.git.commit.llm_model
         else:
             self.model = model
+
+        print(self.config.llm_service.alt_models)
 
 
     def request(self, rule, prompt):
@@ -63,57 +66,76 @@ class LLM_API:
             return ""
 
 
-    def request_stream(self, rule, prompt):
+    def request_stream(self, rule, prompt, check_for_alt_models: bool = True):
         client = OpenAI(
             base_url=self.base_url,
             api_key=self.llm_key,
             timeout=120,#self.config.git.commit.timeout,
             max_retries=5
         )
+        models = [self.model]
+        if check_for_alt_models:
+            models.extend(self.config.llm_service.alt_models)
 
-        success, status, time_taken = self.check_model_status(model=self.model)
-        if success:
-            print(f"Ping: {self.model} [{status}] ({time_taken}s)")
+        time = datetime.now()
 
-            self.meta_data["model_name"] = self.model
+        for model in models:
+            if not model:
+                continue
 
-            time = datetime.now()
+            try:
+                success, status, time_taken = self.check_model_status(model)
+            except ValueError as e:
+                success, status, time_taken = False, 'not-found', 0
 
-            responses = client.responses
-            stream = responses.create(
-                model=self.model,
-                instructions=rule,
-                input=prompt,
-                stream=True
-            )
-            for event in stream:
-                match event.type:
-                    case "response.output_text.delta":
-                        yield event.delta
+            if success:
+                print(f"Ping: {model} [{status}] ({time_taken}s)")
 
-                    case "response.output_text.done":
-                        print("\nText complete")
+                self.meta_data["model_name"] = model
 
-                    case "response.completed":
-                        response = event.response
-                        max_tokens = response.max_output_tokens
-                        if max_tokens:
-                            self.meta_data["max_tokens"] = max_tokens
+                responses = client.responses
+                stream = responses.create(
+                    model=model,
+                    instructions=rule,
+                    input=prompt,
+                    stream=True
+                )
+                for ev in stream:
+                    event = cast(Any, ev)
 
-                        temp = response.temperature
-                        if max_tokens:
-                            self.meta_data["temperature"] = temp
+                    match event.type:
+                        case "response.output_text.delta":
+                            yield event.delta
 
-                        usage = response.usage
-                        if usage:
-                            self.meta_data["input_tokens"] = usage.input_tokens
-                            self.meta_data["output_tokens"] = usage.output_tokens
-                            self.meta_data["total_tokens"] = usage.total_tokens
+                        case "response.output_text.done":
+                            print("\nText complete")
 
-                    case "response.error":
-                        self.meta_data["error_msg"] = event.error
-                    case _:
-                        pass
+                        case "response.completed":
+                            response = event.response
+                            max_tokens = response.max_output_tokens
+                            if max_tokens:
+                                self.meta_data["max_tokens"] = max_tokens
+
+                            temp = response.temperature
+                            if max_tokens:
+                                self.meta_data["temperature"] = temp
+
+                            usage = response.usage
+                            if usage:
+                                self.meta_data["input_tokens"] = usage.input_tokens
+                                self.meta_data["output_tokens"] = usage.output_tokens
+                                self.meta_data["total_tokens"] = usage.total_tokens
+                            break
+
+                        case "response.error":
+                            self.meta_data["error_msg"] = event.error
+                            print(f"ERROR: {event.error}")
+                            continue
+                        case _:
+                            pass
+            else:
+                print(f"Ping Failed: {model} [{status}] ({time_taken}s). Looking for alternative Model...")
+                continue
 
             self.meta_data["response_time_seconds"] = round((datetime.now() - time).total_seconds(), 2)
 

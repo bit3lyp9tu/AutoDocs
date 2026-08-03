@@ -4,10 +4,12 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 from src.Docs import Docs
 from src.config_parser import ConfigError, JSONConfig, YAMLConfig
 from src.file_factory import FileReader, FileWriter, PromptReader
+from src.schemas.setup_schema import SetupSchema
 
 
 def __str2bool(v):
@@ -60,23 +62,35 @@ def init(args):
 
     replacement_data = {
         "project_title": "Project",
-        "LLM_MODEL": "MiniMaxAI/MiniMax-M3-MXFP8"
+        "LLM_MODEL": config.config.autodocs.model
     }
 
     docs_header = PromptReader(
-        "prompts/docs_header.md",   # TODO: use path from config
+        config.config.autodocs.prompts.header_path,
         replacement_data
     )
 
     prompt = PromptReader(
-        "prompts/docs_summary.md",  # TODO: use path from config
+        config.config.autodocs.prompts.path,
         replacement_data
     )
 
     docs_footer = PromptReader(
-        "prompts/docs_footer.md",
+        config.config.autodocs.prompts.footer_path,
         replacement_data
     )
+
+    # setup = JSONConfig(".autodocs/setup.json")  # TODO: ???
+    # setup.config = SetupSchema(
+    #     config_path=config_path,
+    #     root_path=str(root_path),
+    #     autodocs_path=str(autodocs_path),
+    #     resolved_prompt=prompt.getResolved(),
+    #     docs_header=docs_header.getResolved(),
+    #     docs_footer=docs_footer.getResolved(),
+    #     sessions={}
+    # )
+    # setup.createFile(".autodocs/setup.json")
 
     with open(".autodocs/setup.json", mode="w") as f:
         # TODO: change json to class?
@@ -95,13 +109,15 @@ def init(args):
         )
     )
 
-    FileWriter(".autodocs/prompts/docs_header.md").write(docs_header.text)
-    FileWriter(".autodocs/prompts/docs_summary.md").write(prompt.text)
-    # TODO: BUG- if file empty error when autodocs remove
-    # FileWriter(".autodocs/prompts/docs_footer.md").write(docs_footer.text)
+    FileWriter(f".autodocs/{config.config.autodocs.prompts.header_path}").write(docs_header.text)
+    FileWriter(f".autodocs/{config.config.autodocs.prompts.path}").write(prompt.text)
+    FileWriter(f".autodocs/{config.config.autodocs.prompts.footer_path}").write(docs_footer.text)
 
-    # TODO: use path from config
-    # FileWriter(".autodocs/.autodocs-ignore").write(FileReader(".gitignore").text)
+    try:
+        FileWriter(f".autodocs/{config.config.autodocs.files_ignore_path}").write(FileReader(".gitignore").text)
+    except:
+        print("No .gitignore file found")
+        sys.exit(-1)
 
     # add to .gitignore if in git env
     if hasGitEnv:
@@ -181,7 +197,7 @@ def run(args):
 
         if execution_layer <= 0:
             print("Requesting LLM docs...")
-            docs.createContent(args.code)
+            docs.createContent(args.code, args.session)
 
         if execution_layer <= 1:
             print("Creating PUML diagrams...")

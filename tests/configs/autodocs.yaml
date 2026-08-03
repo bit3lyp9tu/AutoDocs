@@ -10,8 +10,16 @@ llm_service:
     show_model_response_time: true
     show_model_status: true
     url: 'https://llm.scads.ai/status/state.json'
-
+  alt_models:
+    - 'google/gemma-4-31B-it'
 autodocs:
+  files_ignore_path: '.autodocs-ignore'
+  do_pre_ping: true
+  model: MiniMaxAI/MiniMax-M3-MXFP8
+  prompts:
+    path: prompts/docs_summary.md
+    header_path: prompts/docs_header.md
+    footer_path: prompts/docs_footer.md
   plantuml:
     renderer_path: 'resources/plantuml.jar'
     auto_render: true
@@ -39,6 +47,9 @@ autodocs:
     ]
   sysprompt:
     file_path: 'tests/configs/autodocs-prompt.md'
+  logs:
+    llm_log:
+      add_thinking_response: true
 git:
   commit:
     allow_auto_msg: True

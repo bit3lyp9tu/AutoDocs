@@ -2,6 +2,7 @@
 from datetime import datetime
 import os
 from pathlib import Path
+from typing import cast
 
 from src.config_parser import ConfigError, JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
@@ -28,11 +29,11 @@ class Docs:
         self.setup = JSONConfig(setup_file)
         self.config = YAMLConfig(self.setup.config.config_path).config
 
-        self.meta_data: MetaData = MetaData()
 
-    def createContent(self, source_code_path: str, model: str = "MiniMaxAI/MiniMax-M3-MXFP8"):
-        current_session = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        self.setup.config.sessions[current_session] = None
+    def createContent(self, source_code_path: str, session: str = ""):
+        current_session = session if session else str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        if current_session not in self.setup.config.sessions:
+            self.setup.config.sessions[current_session] = Session(meta_data=MetaData(), content=[])
 
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.PUML_DIR), current_session))
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.IMG_DIR), current_session))
@@ -43,9 +44,16 @@ class Docs:
 
         contents = []
         directory = Path(self.setup.config.root_path) / source_code_path
-        # TODO: use path from config
-        # TODO: everything breaks + strange bug appears when this is used: blacklist_path=".autodocs/.autodocs-ignore"
-        for file in RecursiveSubdirectories(Path(self.setup.config.root_path), directory, blacklist_path=".gitignore").paths:
+        try:
+            blacklist = RecursiveSubdirectories(
+                Path(self.setup.config.root_path),
+                directory,
+                blacklist_path=f".autodocs/{self.config.autodocs.files_ignore_path}"
+            ).paths
+        except FileNotFoundError as e:
+            raise FileNotFoundError("A file-ignore file is required") from e
+
+        for file in blacklist:
             full_path = directory / file
             contents.extend([
                 file,
@@ -53,7 +61,7 @@ class Docs:
                 ""
             ])
 
-        api = LLM_API(config=self.config, model=model)
+        api = LLM_API(config=self.config, model=self.config.autodocs.model)
         # TODO: meta data in log?
 
         result = ""
@@ -68,7 +76,8 @@ class Docs:
         except ValueError as err:
             print(err)
 
-        self.meta_data = MetaData(**api.meta_data)
+        self.setup.config.sessions[current_session].meta_data = MetaData(**api.meta_data)
+        self.save_setup()
 
 
     def createPUML(self, docs_file: str = "docs.md", session: str = ""):
@@ -82,13 +91,13 @@ class Docs:
         extractor = Extraction(FileReader(target_path=target_file).text)
         umls, text = extractor.extractPlantUML(tag_infix=tag)
 
-        # TODO: store in current session directory?
         paths, names = extractor.createPaths(
             keys=list(umls.keys()),
             tag=tag,
             path=puml_path
         )
-        self.setup.config.sessions[local_session] = Session(meta_data=self.meta_data, content=names)
+
+        self.setup.config.sessions[local_session].content = names
         self.save_setup()
 
         think_text, text = extractor.extractThinkTagPrefix(text)
@@ -104,13 +113,12 @@ class Docs:
         for k, v in paths.items():
             PUMLWriter(target_path=v).write(umls[k])
 
-        # TODO: make optional in config
         input = self.setup.config.docs_header + "\n" + text + "\n" + self.setup.config.docs_footer
         FileWriter(docs_file).write(input)
 
-        # TODO: use file name form config
-        think_file_path = f"{target_file.replace(".md", "")}_thinking.md"
-        FileWriter(think_file_path).write(think_text)
+        if self.config.autodocs.logs.llm_log.add_thinking_response:
+            think_file_path = f"{target_file.replace(".md", "")}_thinking.md"
+            FileWriter(think_file_path).write(think_text)
 
 
     def renderPUML(self, session: str = ""):
@@ -141,4 +149,8 @@ class Docs:
             else:
                 raise KeyError(session)
         else:
-            return list(self.setup.config.sessions.keys())[-1]
+            keys = list(self.setup.config.sessions.keys())
+            if len(keys) > 0:
+                return keys[-1]
+            else:
+                raise ValueError(session)

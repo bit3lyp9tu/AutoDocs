@@ -10,7 +10,8 @@ from src.extraction_factory import Extraction
 class FileReader:
     def __init__(self, target_path) -> None:
         with open(target_path, 'r') as r:
-            self.text = r.read()
+            content = r.read()
+            self.text = content if content else ""
 
 class PromptReader(FileReader):
     def __init__(self, target_path, data: dict = {}) -> None:
@@ -46,8 +47,8 @@ class FileWriter:
         self.mode = mode
 
     def write(self, content=""):
-        if content == "":
-            raise ValueError(f"No content found to write into [{self.target_path}].")
+        # if content == "":
+        #     raise ValueError(f"No content found to write into [{self.target_path}].")
 
         with open(self.target_path, self.mode) as f:
             f.write(content)

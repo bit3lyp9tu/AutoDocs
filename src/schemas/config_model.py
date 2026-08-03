@@ -38,7 +38,7 @@ class LLMStatus(BaseModel):
 class LLMService(BaseModel):
     api: API
     status: LLMStatus
-
+    alt_models: list[str] = []
 
 class PlantUML(BaseModel):
     renderer_path: str
@@ -80,10 +80,27 @@ class SysPrompt(BaseModel):
                 raise ValueError(f"Not a file: {value}")
         return value
 
+class Prompts(BaseModel):
+    path: str
+    header_path: str = ""
+    footer_path: str = ""
+    # TODO file validation???
+
+class LLM_Log(BaseModel):
+    add_thinking_response: bool = True
+
+class Logs(BaseModel):
+    llm_log: LLM_Log
+
 class AutoDocs(BaseModel):
+    files_ignore_path: str
+    do_model_ping: bool = True
+    model: str
+    prompts: Prompts
     plantuml: PlantUML
     valid_diagrams: ValidDiagrams
     sysprompt: SysPrompt
+    logs: Logs
 
 class GitCommit(BaseModel):
     allow_auto_msg: bool = True

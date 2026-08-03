@@ -23,11 +23,11 @@ def main():
         # "meta-llama/Llama-3.1-8B-Instruct",
         # "meta-llama/Llama-3.3-70B-Instruct",
         # "MiniMaxAI/MiniMax-M3-MXFP8",
-        "moonshotai/Kimi-K2.7-Code",
+        "moonshotai/Kimi-K3",
         # "openai/gpt-oss-120b",
         # "Qwen/Qwen3-Coder-30B-A3B-Instruct",
         # "Qwen/Qwen3-VL-8B-Instruct",
-        "zai-org/GLM-5.2-FP8"
+        # "zai-org/GLM-5.2-FP8"
     ]
         # "openGPT-X/Teuken-7B-instruct-v0.6",
 
@@ -51,7 +51,7 @@ def main():
         print(f"##########################################################-{i}")
 
         # code = FileReader(target_path="tests/example_data/oop.py").text
-        code = FileReader(target_path="src/umlblock_schema.py").text
+        code = FileReader(target_path="src/schemas/umlblock_schema.py").text
 
         api = LLM_API(config=yaml.config, model=model_list[i])
         result = api.request(
@@ -86,8 +86,30 @@ def main():
 
 
 def test():
-    pass
+
+    tag="UML"
+    target_file = f".autodocs/llm_logs/2026-08-03_09-47-04.md"
+    # puml_path = f".autodocs/self.PUML_DIR}/{local_session}"
+
+    extractor = Extraction(FileReader(target_path=target_file).text)
+    umls, text = extractor.extractPlantUML(tag_infix=tag)
+
+    paths, names = extractor.createPaths(
+        keys=list(umls.keys()),
+        tag=tag,
+        path=""
+    )
+
+    think_text, text = extractor.extractThinkTagPrefix(text)
+
+    print("#################")
+    print(think_text)
+    print("#################")
+    print(text)
+    print("#################")
+
+    print(re.findall(r'.*\</mm:think\>', "</mm:think>"))
 
 if __name__ == "__main__":
     main()
-    test()
+    # test()

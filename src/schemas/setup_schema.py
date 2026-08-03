@@ -13,7 +13,7 @@ class MetaData(BaseModel):
     error_msg: str = ""
 
 class Session(BaseModel):
-    meta_data: MetaData | None = None
+    meta_data: MetaData
     content: list[str] = []
 
 class SetupSchema(BaseModel):
@@ -23,7 +23,7 @@ class SetupSchema(BaseModel):
     resolved_prompt: str
     docs_header: str = ""
     docs_footer: str = ""
-    sessions: dict[str, Session | None]
+    sessions: dict[str, Session]
 
     @field_validator("config_path")
     @classmethod
