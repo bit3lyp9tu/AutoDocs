@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 from pathlib import Path
 from typing import Any, cast
 
@@ -8,7 +7,7 @@ from pydantic import ValidationError
 import requests
 
 from src.schemas.config_model import ConfigSchema
-from src.schemas.state_schemas import Model, ScadsAIModelsStatus
+from src.schemas.state_schemas import ScadsAIModelsStatus
 
 
 class LLM_API:
@@ -30,8 +29,6 @@ class LLM_API:
             self.model = self.config.git.commit.llm_model
         else:
             self.model = model
-
-        print(self.config.llm_service.alt_models)
 
 
     def request(self, rule, prompt):

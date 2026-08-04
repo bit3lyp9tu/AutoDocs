@@ -2,9 +2,8 @@
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import cast
 
-from src.config_parser import ConfigError, JSONConfig, YAMLConfig
+from src.config_parser import JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, FileWriter, PUMLWriter, RecursiveSubdirectories
 from src.rendering import PlantUMLRendering, PrintMode
@@ -32,13 +31,13 @@ class Docs:
 
     def createContent(self, source_code_path: str, session: str = ""):
         current_session = session if session else str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        if current_session not in self.setup.config.sessions:
-            self.setup.config.sessions[current_session] = Session(meta_data=MetaData(), content=[])
+
+        with self.setup.open() as setup:
+            if current_session not in self.setup.config.sessions:
+                setup.sessions[current_session] = Session(meta_data=MetaData(), content=[])
 
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.PUML_DIR), current_session))
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.IMG_DIR), current_session))
-
-        self.save_setup()
 
         target_file = f".autodocs/{self.LLM_DIR}/{current_session}.md"
 
@@ -76,8 +75,8 @@ class Docs:
         except ValueError as err:
             print(err)
 
-        self.setup.config.sessions[current_session].meta_data = MetaData(**api.meta_data)
-        self.save_setup()
+        with self.setup.open() as setup:
+            setup.sessions[current_session].meta_data = MetaData(**api.meta_data)
 
 
     def createPUML(self, docs_file: str = "docs.md", session: str = ""):
@@ -97,8 +96,8 @@ class Docs:
             path=puml_path
         )
 
-        self.setup.config.sessions[local_session].content = names
-        self.save_setup()
+        with self.setup.open() as setup:
+            setup.sessions[local_session].content = names
 
         think_text, text = extractor.extractThinkTagPrefix(text)
 
@@ -133,13 +132,9 @@ class Docs:
                 rel = file.relative_to(root).as_posix()
 
                 plantuml = PlantUMLRendering(self.config, source_file=rel)
-                plantuml.render(str(target_path), PrintMode.ALWAYS)
+                plantuml.render(str(target_path), PrintMode.ONLY_WHEN_ERROR)
         else:
             raise NotADirectoryError(str(source_file))
-
-
-    def save_setup(self):
-        self.setup.createFile(self.setup_file)
 
 
     def __validateSession(self, session):

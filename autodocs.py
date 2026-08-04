@@ -32,7 +32,7 @@ LOG_DIR = "log"
 PROMPTS_DIR = "prompts"
 
 def init(args):
-    config_path = args.config_path if args.config_path else "tests/configs/autodocs.yaml"
+    config_path = args.config_path if args.config_path else "tests/configs/autodocs.yaml" # TODO remove static path
 
     # TODO: move to single class
     print("Initializing environment...")
@@ -80,18 +80,6 @@ def init(args):
         replacement_data
     )
 
-    # setup = JSONConfig(".autodocs/setup.json")  # TODO: ???
-    # setup.config = SetupSchema(
-    #     config_path=config_path,
-    #     root_path=str(root_path),
-    #     autodocs_path=str(autodocs_path),
-    #     resolved_prompt=prompt.getResolved(),
-    #     docs_header=docs_header.getResolved(),
-    #     docs_footer=docs_footer.getResolved(),
-    #     sessions={}
-    # )
-    # setup.createFile(".autodocs/setup.json")
-
     with open(".autodocs/setup.json", mode="w") as f:
         # TODO: change json to class?
         f.write(json.dumps(
@@ -117,7 +105,7 @@ def init(args):
         FileWriter(f".autodocs/{config.config.autodocs.files_ignore_path}").write(FileReader(".gitignore").text)
     except:
         print("No .gitignore file found")
-        sys.exit(-1)
+        sys.exit(1)
 
     # add to .gitignore if in git env
     if hasGitEnv:
@@ -197,7 +185,7 @@ def run(args):
 
         if execution_layer <= 0:
             print("Requesting LLM docs...")
-            docs.createContent(args.code, args.session)
+            docs.createContent(args.source_code, args.session)
 
         if execution_layer <= 1:
             print("Creating PUML diagrams...")
@@ -227,30 +215,19 @@ def main():
     help_parser.set_defaults(func=lambda args: help())
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
-    # TODO: add config path parameter
-    init_parser.add_argument('-c', '--config-path', type=str, default="", help='Path to default autodocs.yaml config')
+    init_parser.add_argument('-c', '--config-path', type=str, default='', help='Path to default autodocs.yaml config')
     init_parser.add_argument('-g', '--git', type=__str2bool, default=False, help='Include git support features like commit msg generation')
-    # TODO: redundant to subparser 'run'?
-    init_parser.add_argument('-u', '--uml', type=__str2bool, default=True, help='Include rendering uml diagrams from code')
     init_parser.set_defaults(func=init)
 
-    # TODO: add --reload-setup subparser to newly initialize the setup.json config
-
-    run_parser = subparser.add_parser('run', help='')
-
-    # rename to --source-code?
-    run_parser.add_argument('-c', '--code', type=str, default="", help='Path to code base.')
-    # TODO: add ai disclaimer to summary
-    run_parser.add_argument('-d', '--docs-file', type=str, default="docs.md", help='Path of code base documentation')
+    run_parser = subparser.add_parser('run', help='Running the process')
+    run_parser.add_argument('-c', '--source-code', type=str, default='', help='Relative path to code base')
+    run_parser.add_argument('-d', '--docs-file', type=str, default='docs.md', help='Relative path of returned code base documentation')
     run_parser.add_argument('-s', '--session', type=str, default='', choices=sessions, help='Specify used session (default: last session)')
-
     run_parser.add_argument('-m', '--mode', type=str, default='all', choices=["all", "extract", "render"], help='')
-
     # TODO: add --vim-edit, if mode=extract, user can edit the API result before extraction/processing
-
     run_parser.set_defaults(func=run)
 
-    remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root.')
+    remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root')
     remove_parser.set_defaults(func=remove)
 
     args = parser.parse_args()

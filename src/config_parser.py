@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import json
 import yaml
 from typing import IO, Callable, ClassVar, Generic, TypeVar
@@ -40,6 +41,15 @@ class Config(Generic[T]):
             raise ConfigError(
                 f"Invalid configuration in '{self.config_path} as {self.schema}'"
             ) from ve
+
+    @contextmanager
+    def open(self):
+        try:
+            yield self.config
+        except Exception:
+            raise
+        finally:
+            self.createFile(self.config_path)
 
     def createFile(self, path):
         FileWriter(path).write(
