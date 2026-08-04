@@ -43,8 +43,6 @@ autodocs:
       "Work Breakdown Structure diagram",
       "Entity Relationship diagram"
     ]
-  sysprompt:
-    file_path: 'tests/configs/autodocs-prompt.md'
   logs:
     llm_log:
       add_thinking_response: true

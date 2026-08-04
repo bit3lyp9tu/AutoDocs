@@ -97,7 +97,6 @@ class AutoDocs(BaseModel):
     prompts: Prompts
     plantuml: PlantUML
     valid_diagrams: ValidDiagrams
-    sysprompt: SysPrompt
     logs: Logs
 
 class GitCommit(BaseModel):
