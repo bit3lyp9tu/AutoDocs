@@ -14,7 +14,6 @@ llm_service:
     - 'google/gemma-4-31B-it'
 autodocs:
   files_ignore_path: '.autodocs-ignore'
-  do_pre_ping: true
   model: MiniMaxAI/MiniMax-M3-MXFP8
   prompts:
     path: prompts/docs_summary.md
@@ -22,7 +21,6 @@ autodocs:
     footer_path: prompts/docs_footer.md
   plantuml:
     renderer_path: 'resources/plantuml.jar'
-    auto_render: true
   valid_diagrams:
     umls: [
       "Sequence diagram",
@@ -54,7 +52,7 @@ git:
   commit:
     allow_auto_msg: True
     sysprompt:
-      file_path: 'tests/configs/commit-convention.md'
+      file_path: 'prompts/commit-convention.md'
     vim_examination: True
     llm_model: 'google/gemma-4-31B-it'
     timeout: 600

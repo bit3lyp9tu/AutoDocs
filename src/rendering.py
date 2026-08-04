@@ -34,31 +34,29 @@ class PlantUMLRendering:
 
 
     def render(self, target_path: str, mode: PrintMode = PrintMode.ONLY_WHEN_ERROR):
+        if mode.value == 2:
+            print(f"Render source: [{self.source_file}]...")
 
-        if self.config.autodocs.plantuml.auto_render:   # TODO: move to higher level
+        stdout, returncode, stderr = self.__render([
+            "java",
+            "-jar",
+            self.jar_path,
+            self.source_file,
+            "--output-dir",
+            target_path,
+            "--png"
+        ])
+
+        if returncode != 0:
+            if mode.value >= 1:
+                if returncode == 50 or returncode == 100:
+                    print("PlantUML renderer could not find file")
+                elif returncode == 200:
+                    print(f"File [{self.source_file}] contains syntax error")
+                else:
+                    print(f"PlantUML failed to render, Exit code: {returncode}")
+                    print(f"stderr: {stderr}")
+        else:
             if mode.value == 2:
-                print(f"Render source: [{self.source_file}]...")
-
-            stdout, returncode, stderr = self.__render([
-                "java",
-                "-jar",
-                self.jar_path,
-                self.source_file,
-                "--output-dir",
-                target_path,
-                "--png"
-            ])
-
-            if returncode != 0:
-                if mode.value >= 1:
-                    if returncode == 50 or returncode == 100:
-                        print("PlantUML renderer could not find file")
-                    elif returncode == 200:
-                        print(f"File [{self.source_file}] contains syntax error")
-                    else:
-                        print(f"PlantUML failed to render, Exit code: {returncode}")
-                        print(f"stderr: {stderr}")
-            else:
-                if mode.value == 2:
-                    print(f"Rendered PlantUML: [{target_path}/{self.source_file.split('/')[-1]}]")
+                print(f"Rendered PlantUML: [{target_path}/{self.source_file.split('/')[-1]}]")
 

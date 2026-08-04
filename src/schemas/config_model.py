@@ -45,7 +45,6 @@ class LLMService(BaseModel):
 
 class PlantUML(BaseModel):
     renderer_path: str
-    auto_render: bool = True
 
     @field_validator("renderer_path")
     @classmethod
@@ -68,7 +67,6 @@ class ValidDiagrams(BaseModel):
 
 class SysPrompt(BaseModel):
     file_path: str
-    # content: str
 
     @field_validator("file_path")
     @classmethod
@@ -95,7 +93,6 @@ class Logs(BaseModel):
 
 class AutoDocs(BaseModel):
     files_ignore_path: str
-    do_model_ping: bool = True
     model: str
     prompts: Prompts
     plantuml: PlantUML

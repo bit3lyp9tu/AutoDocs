@@ -68,7 +68,9 @@ def init(args):
 
     replacement_data = {
         "project_title": "Project",
-        "LLM_MODEL": config.config.autodocs.model
+        "LLM_MODEL": config.config.autodocs.model,
+        "valid_umls": ','.join(config.config.autodocs.valid_diagrams.umls),
+        "valid_non_umls": ','.join(config.config.autodocs.valid_diagrams.non_umls)
     }
 
     docs_header = PromptReader(
@@ -123,11 +125,17 @@ def init(args):
 
     # configure git-hooks
     if args.git and hasGitEnv:
+        commit_convention = PromptReader(
+            config.config.git.commit.sysprompt.file_path,
+            replacement_data
+        )
+        FileWriter(f".autodocs/{config.config.git.commit.sysprompt.file_path}").write(commit_convention.text)
+
         print("Add to script to ./.git/hooks/prepare-commit-msg")
         FileWriter(
             target_path=f'{root_path / "./.git/hooks/prepare-commit-msg"}',
             mode='a'
-        ).write(content=f'uv run python3 smart_commit.py .git/COMMIT_EDITMSG --config "autodocs.yaml"')
+        ).write(content=f'uv run python3 auto_commit_msg.py .git/COMMIT_EDITMSG --config "autodocs.yaml"')
 
 
 def remove(args):
@@ -222,7 +230,7 @@ def main():
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
     init_parser.add_argument('-c', '--config-path', type=str, default='', help='Path to default autodocs.yaml config')
-    init_parser.add_argument('-g', '--git', type=__str2bool, default=False, help='Include git support features like commit msg generation')
+    init_parser.add_argument('-g', '--git', action=argparse.BooleanOptionalAction, type=__str2bool, default=False, help='Include git support features like commit msg generation')
     init_parser.set_defaults(func=init)
 
     run_parser = subparser.add_parser('run', help='Running the process')

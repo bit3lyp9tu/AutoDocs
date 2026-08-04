@@ -12,7 +12,7 @@ def main():
     parser.add_argument("commit_msg_file")
     parser.add_argument(
         "--config",
-        default="config.yaml",
+        default="autodocs.yaml",
         help="Path to configuration file",
     )
     args = parser.parse_args()
