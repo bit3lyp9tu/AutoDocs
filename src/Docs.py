@@ -22,7 +22,7 @@ class Docs:
     def __init__(self, setup_file='.autodocs/setup.json') -> None:
         file = Path(str(setup_file))
         if not file.exists() or not file.is_file() or not str(file).endswith(".json"):
-            raise NameError(f"Setup file [{setup_file}] not found")
+            raise FileNotFoundError(f"Setup file [{setup_file}] not found")
 
         self.setup_file = setup_file
         self.setup = JSONConfig(setup_file)

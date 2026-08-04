@@ -5,6 +5,9 @@ from typing import Self
 from pydantic import BaseModel, field_validator, model_validator
 
 
+class RendererNotFoundError(Exception):
+    pass
+
 class API(BaseModel):
     base_url: str
     key_value: str | None = None
@@ -49,10 +52,8 @@ class PlantUML(BaseModel):
     def validate_path(cls, value: str | None) -> str | None:
         if value is not None:
             path = Path(value)
-            if not path.exists():
-                raise ValueError(f"Path does not exist: {value}")
-            if not path.is_file() or not value.endswith('.jar'):
-                raise ValueError(f"Not a .jar file: {value}")
+            if not path.exists() or not path.is_file() or not value.endswith('.jar'):
+                raise ValueError(f"Renderer path [{path}] not found")
         return value
 
 class ValidDiagrams(BaseModel):

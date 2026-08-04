@@ -9,6 +9,7 @@ import sys
 from src.Docs import Docs
 from src.config_parser import ConfigError, JSONConfig, YAMLConfig
 from src.file_factory import FileReader, FileWriter, PromptReader
+from src.schemas.config_model import RendererNotFoundError
 from src.schemas.setup_schema import SetupSchema
 
 
@@ -32,16 +33,21 @@ LOG_DIR = "log"
 PROMPTS_DIR = "prompts"
 
 def init(args):
-    config_path = args.config_path if args.config_path else "tests/configs/autodocs.yaml" # TODO remove static path
-
     # TODO: move to single class
     print("Initializing environment...")
 
     root_path = Path(__file__).resolve().parent
-    # TODO: add as setup parameter
     hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
 
-    config = YAMLConfig(config_path)
+    try:
+        config = YAMLConfig(args.config_path)
+    except FileNotFoundError as r:
+        print(f"File not found: {r}")
+        sys.exit(1)
+    except ConfigError as e:
+        print(e)
+        sys.exit(1)
+
     config.createFile(Path(root_path / "autodocs.yaml"))
 
     # create .autodocs directory and children (logs, cache, ...)
@@ -84,7 +90,7 @@ def init(args):
         # TODO: change json to class?
         f.write(json.dumps(
             {
-                "config_path": config_path,
+                "config_path": args.config_path,
                 "root_path": str(root_path),
                 "autodocs_path": str(autodocs_path),
                 "resolved_prompt": prompt.getResolved(),
@@ -169,9 +175,7 @@ def remove(args):
 
 
 def run(args):
-
-    # TODO: check if init exists
-    if True:
+    try:
         docs = Docs()
         execution_layer = 0
 
@@ -195,18 +199,20 @@ def run(args):
             print("Render PUML diagrams...")
             docs.renderPUML(args.session)
 
-    else:
-        print("Environment is not initialized (see --help)")
+    except FileNotFoundError as e:
+        print(f"{e}. Is the AutoDocs environment initialized? Run '... autodocs.py init'")
 
 
 def main():
-
     sessions = []
     try:
         setup = JSONConfig(".autodocs/setup.json")
         sessions = setup.config.sessions
-    except( ConfigError, FileNotFoundError) as e:
+    except FileNotFoundError as f:
+        pass
+    except ConfigError as e:
         print(e)
+        sys.exit(1)
 
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command', required=True)
@@ -224,7 +230,7 @@ def main():
     run_parser.add_argument('-d', '--docs-file', type=str, default='docs.md', help='Relative path of returned code base documentation')
     run_parser.add_argument('-s', '--session', type=str, default='', choices=sessions, help='Specify used session (default: last session)')
     run_parser.add_argument('-m', '--mode', type=str, default='all', choices=["all", "extract", "render"], help='')
-    # TODO: add --vim-edit, if mode=extract, user can edit the API result before extraction/processing
+    # TODO: add --vim-edit, if mode=extract, user can edit the API result before extract/render
     run_parser.set_defaults(func=run)
 
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root')

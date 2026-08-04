@@ -6,7 +6,7 @@ from typing import IO, Callable, ClassVar, Generic, TypeVar
 from pydantic import BaseModel
 from pydantic_core import ValidationError
 
-from src.schemas.config_model import ConfigSchema
+from src.schemas.config_model import ConfigSchema, RendererNotFoundError
 from src.file_factory import FileWriter
 from src.schemas.setup_schema import SetupSchema
 
@@ -37,10 +37,17 @@ class Config(Generic[T]):
 
         try:
             self.config: T = self.schema.model_validate(data)
-        except ValidationError as ve:
+        except ValidationError as e:
+            messages = []
+
+            for err in e.errors():
+                location = ".".join(map(str, err["loc"]))
+                messages.append(f"{location}: {err['msg']}")
+
             raise ConfigError(
-                f"Invalid configuration in '{self.config_path} as {self.schema}'"
-            ) from ve
+                f"Configuration file '{self.config_path}' is invalid:\n"
+                + "\n".join(messages)
+            ) from e
 
     @contextmanager
     def open(self):
