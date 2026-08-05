@@ -1,7 +1,10 @@
 
 from datetime import datetime
 import os
+import json
 from pathlib import Path
+
+import humanize
 
 from src.config_parser import JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
@@ -10,6 +13,12 @@ from src.rendering import PlantUMLRendering, PrintMode
 from src.request import LLM_API
 from src.schemas.setup_schema import MetaData, Session
 
+
+def convert_bytes(num):
+    for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+        if num < 1024.0:
+            return "%3.1f %s" % (num, x)
+        num /= 1024.0
 
 class Docs:
 
@@ -29,7 +38,7 @@ class Docs:
         self.config = YAMLConfig(self.setup.config.config_path).config
 
 
-    def createContent(self, source_code_path: str, session: str = ""):
+    def createContent(self, source_code_path: str, session: str = "", print_short_report: bool = True):
         current_session = session if session else str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
         with self.setup.open() as setup:
@@ -52,16 +61,46 @@ class Docs:
         except FileNotFoundError as e:
             raise FileNotFoundError("A file-ignore file is required") from e
 
+        content_size = {}
+        total_file_size = 0 # might be imprecise
+        total_character_length = 0
+
         for file in blacklist:
             full_path = directory / file
             try:
+                text = FileReader(str(full_path)).text
+
+                file_size = full_path.stat().st_size
+                character_amount = len(text)
+
                 contents.extend([
                     file,
-                    FileReader(str(full_path)).text,
+                    text,
                     ""
                 ])
+                content_size[str(full_path)] = {
+                    "file_size": file_size,
+                    "character_amount": character_amount
+                }
+                total_file_size += file_size
             except UnicodeDecodeError as r:
                 print(f"Unable to open [{full_path}] File gets ignored: {r}")
+
+        total_character_length = len(''.join(contents).encode('utf-8'))
+
+        FileWriter(".autodocs/sended_content_report.json").write(
+            json.dumps(
+            {
+                "total_char_length": total_character_length,
+                "total_file_size": total_file_size,
+                "detail": content_size
+            },
+            indent=4,
+            sort_keys=False
+        ))
+
+        if print_short_report:
+            print(f"Included files: {len(content_size)}, Total Character length: {total_character_length}, Size: {humanize.naturalsize(total_file_size, binary=True)}")
 
         api = LLM_API(config=self.config, model=self.config.autodocs.model)
         # TODO: meta data in log?

@@ -1,12 +1,16 @@
+.mypy_cache/
+
 .git/
+.gitignore
 
 .autodocs
 .autodocs/
 
-autodocs.json
+autodocs.yaml
 
 *.png
 *.gif
 *.jpg
 *.jpeg
 *.mp4
+*.svg
