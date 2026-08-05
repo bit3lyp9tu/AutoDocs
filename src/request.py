@@ -67,7 +67,7 @@ class LLM_API:
         client = OpenAI(
             base_url=self.base_url,
             api_key=self.llm_key,
-            timeout=120,#self.config.git.commit.timeout,
+            timeout=self.config.git.commit.timeout,
             max_retries=5
         )
         models = [self.model]
@@ -95,6 +95,7 @@ class LLM_API:
                     model=model,
                     instructions=rule,
                     input=prompt,
+                    # timeout=self.config.git.commit.timeout,
                     stream=True
                 )
                 for ev in stream:

@@ -1,0 +1,12 @@
+.git/
+
+.autodocs
+.autodocs/
+
+autodocs.json
+
+*.png
+*.gif
+*.jpg
+*.jpeg
+*.mp4

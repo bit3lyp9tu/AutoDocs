@@ -54,11 +54,14 @@ class Docs:
 
         for file in blacklist:
             full_path = directory / file
-            contents.extend([
-                file,
-                FileReader(str(full_path)).text,
-                ""
-            ])
+            try:
+                contents.extend([
+                    file,
+                    FileReader(str(full_path)).text,
+                    ""
+                ])
+            except UnicodeDecodeError as r:
+                print(f"Unable to open [{full_path}] File gets ignored: {r}")
 
         api = LLM_API(config=self.config, model=self.config.autodocs.model)
         # TODO: meta data in log?

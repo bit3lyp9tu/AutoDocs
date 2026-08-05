@@ -118,3 +118,20 @@ You may need to give the necessary file permissions:
 ---
 
 ## README
+
+
+
+## Recommended:
+
+> or use symlink???
+
+```sh
+cat > ~/.local/bin/autodocs <<EOF
+#!/bin/sh
+exec "$(pwd)/autodocs.py" "\$@"
+EOF
+```
+
+```sh
+chmod +x ~/.local/bin/autodocs
+```

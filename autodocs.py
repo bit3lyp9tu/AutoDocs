@@ -1,16 +1,44 @@
-import argparse
-import json
+#!/usr/bin/env python3
+
 import os
-from pathlib import Path
-import shutil
-import subprocess
 import sys
 
-from src.Docs import Docs
-from src.config_parser import ConfigError, JSONConfig, YAMLConfig
-from src.file_factory import FileReader, FileWriter, PromptReader
-from src.schemas.config_model import RendererNotFoundError
-from src.schemas.setup_schema import SetupSchema
+def ensure_uv():
+    # from: https://github.com/NormanTUD/roARM-m2/blob/main/bootstrap.py (somewhat modified, without dialout())
+
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.as_posix()
+    script = os.path.abspath(sys.argv[0])
+
+    if os.environ.get("_UV_SAFE_ENV") == "1":
+        return
+
+    os.environ["_UV_SAFE_ENV"] = "1"
+
+    from datetime import datetime, timedelta, timezone
+    if not os.environ.get("UV_EXCLUDE_NEWER"):
+        past = (datetime.now(timezone.utc) - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        os.environ["UV_EXCLUDE_NEWER"] = past
+    else:
+        raise SystemError("ensure_dialout() needed")
+
+    try:
+        os.execvpe(
+            "uv",
+            [
+                "uv",
+                "run",
+                "--quiet",
+                "--project", root,
+                script,
+                "--",
+                *sys.argv[1:],
+            ],
+            os.environ,
+        )
+    except FileNotFoundError:
+        print("uv not installed. Install: curl -LsSf https://astral.sh/uv/install.sh | sh")
+        sys.exit(1)
 
 
 def __str2bool(v):
@@ -36,11 +64,21 @@ def init(args):
     # TODO: move to single class
     print("Initializing environment...")
 
-    root_path = Path(__file__).resolve().parent
-    hasGitEnv = Path(root_path / '.git').exists() and Path(root_path / '.git').is_dir()
+    ROOT_LOCAL = Path.cwd()
+    root_default = Path(__file__).resolve().parent
+
+    hasGitEnv = Path(ROOT_LOCAL / '.git').exists() and Path(ROOT_LOCAL / '.git').is_dir()
+
+    config_path = args.config_path if args.config_path else Path(root_default / "tests/configs/autodocs.yaml").as_posix()
+
+    autodocs_file = Path(ROOT_LOCAL / ".autodocs")
+    autodocs_config_file = Path(ROOT_LOCAL / "autodocs.yaml")
+    if autodocs_file.exists() or autodocs_config_file.exists():
+        print("Some already existing autodocs-files detected. Run `autodocs remove` for full cleanup.")
+        sys.exit(1)
 
     try:
-        config = YAMLConfig(args.config_path)
+        config = YAMLConfig(config_path)
     except FileNotFoundError as r:
         print(f"File not found: {r}")
         sys.exit(1)
@@ -48,17 +86,17 @@ def init(args):
         print(e)
         sys.exit(1)
 
-    config.createFile(Path(root_path / "autodocs.yaml"))
+    config.createFile(Path(ROOT_LOCAL / "autodocs.yaml"))
 
     # create .autodocs directory and children (logs, cache, ...)
     print("Creating new .autodocs directory")
-    os.mkdir(".autodocs")
+    os.mkdir(f"{ROOT_LOCAL}/.autodocs")
 
     # check env
-    if not Path(root_path / '.autodocs').exists() or not Path(root_path / '.autodocs').is_dir():
+    if not Path(ROOT_LOCAL / '.autodocs').exists() or not Path(ROOT_LOCAL / '.autodocs').is_dir():
         raise EnvironmentError(".autodocs/ not found")
 
-    autodocs_path = Path(root_path / ".autodocs")
+    autodocs_path = Path(ROOT_LOCAL / ".autodocs")
     os.mkdir(os.path.join(autodocs_path, PUML_DIR))
     os.mkdir(os.path.join(autodocs_path, IMG_DIR))
     os.mkdir(os.path.join(autodocs_path, LLM_DIR))
@@ -74,26 +112,26 @@ def init(args):
     }
 
     docs_header = PromptReader(
-        config.config.autodocs.prompts.header_path,
+        Path(root_default / config.config.autodocs.prompts.header_path),
         replacement_data
     )
 
     prompt = PromptReader(
-        config.config.autodocs.prompts.path,
+        Path(root_default / config.config.autodocs.prompts.path),
         replacement_data
     )
 
     docs_footer = PromptReader(
-        config.config.autodocs.prompts.footer_path,
+        Path(root_default / config.config.autodocs.prompts.footer_path),
         replacement_data
     )
 
-    with open(".autodocs/setup.json", mode="w") as f:
+    with open(Path(ROOT_LOCAL / ".autodocs/setup.json"), mode="w") as f:
         # TODO: change json to class?
         f.write(json.dumps(
             {
-                "config_path": args.config_path,
-                "root_path": str(root_path),
+                "config_path": config_path,
+                "root_path": str(ROOT_LOCAL),
                 "autodocs_path": str(autodocs_path),
                 "resolved_prompt": prompt.getResolved(),
                 "docs_header": docs_header.getResolved(),
@@ -105,12 +143,17 @@ def init(args):
         )
     )
 
-    FileWriter(f".autodocs/{config.config.autodocs.prompts.header_path}").write(docs_header.text)
-    FileWriter(f".autodocs/{config.config.autodocs.prompts.path}").write(prompt.text)
-    FileWriter(f".autodocs/{config.config.autodocs.prompts.footer_path}").write(docs_footer.text)
+    FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.autodocs.prompts.header_path}").write(docs_header.text)
+    FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.autodocs.prompts.path}").write(prompt.text)
+    FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.autodocs.prompts.footer_path}").write(docs_footer.text)
 
     try:
-        FileWriter(f".autodocs/{config.config.autodocs.files_ignore_path}").write(FileReader(".gitignore").text)
+        gitignore_content = FileReader(ROOT_LOCAL / '.gitignore').text
+        ignore_default_content = FileReader(root_default / 'prompts/.autodocs-ignore-default').text
+
+        FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.autodocs.files_ignore_path}").write(
+            f"{gitignore_content}\n\n{ignore_default_content}\n"
+        )
     except:
         print("No .gitignore file found")
         sys.exit(1)
@@ -119,7 +162,7 @@ def init(args):
     if hasGitEnv:
         print("Add files to .gitignore")
         FileWriter(
-            target_path=f'{root_path / ".gitignore"}',
+            target_path=f'{ROOT_LOCAL / ".gitignore"}',
             mode='a'
         ).write(content='# AutoDocs\n.autodocs\n.autodocs/*')
 
@@ -129,27 +172,28 @@ def init(args):
             config.config.git.commit.sysprompt.file_path,
             replacement_data
         )
-        FileWriter(f".autodocs/{config.config.git.commit.sysprompt.file_path}").write(commit_convention.text)
+        FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.git.commit.sysprompt.file_path}").write(commit_convention.text)
 
         print("Add to script to ./.git/hooks/prepare-commit-msg")
         FileWriter(
-            target_path=f'{root_path / "./.git/hooks/prepare-commit-msg"}',
+            target_path=f'{ROOT_LOCAL / "./.git/hooks/prepare-commit-msg"}',
             mode='a'
         ).write(content=f'uv run python3 auto_commit_msg.py .git/COMMIT_EDITMSG --config "autodocs.yaml"')
 
 
 def remove(args):
-    current_path = Path(__file__).resolve().parent
+    ROOT_LOCAL = Path.cwd()
+    ROOT_DEFAULT = Path(__file__).resolve().parent
 
     print("Remove Autodocs environment...")
 
-    if Path(current_path / "autodocs.yaml").exists() and Path(current_path / "autodocs.yaml").is_file():
-        os.remove("autodocs.yaml")
+    if Path(ROOT_LOCAL / "autodocs.yaml").exists() and Path(ROOT_LOCAL / "autodocs.yaml").is_file():
+        os.remove(ROOT_LOCAL / "autodocs.yaml")
 
-    if Path(current_path / ".autodocs").exists() and Path(current_path / ".autodocs").is_dir():
-        shutil.rmtree(".autodocs")
+    if Path(ROOT_LOCAL / ".autodocs").exists() and Path(ROOT_LOCAL / ".autodocs").is_dir():
+        shutil.rmtree(ROOT_LOCAL / ".autodocs")
 
-    if Path(current_path / ".gitignore").exists() and Path(current_path / ".gitignore").is_file():
+    if Path(ROOT_LOCAL / ".gitignore").exists() and Path(ROOT_LOCAL / ".gitignore").is_file():
         for line in [
             '/# AutoDocs/d',
             '/.autodocs/d'
@@ -160,21 +204,21 @@ def remove(args):
                         "sed",
                         "-i",
                         line,
-                        ".gitignore"
+                        ROOT_LOCAL / ".gitignore"
                     ],
                     check=True
                 )
             except subprocess.CalledProcessError as e:
                 print(f"Entry removal of '{line}' in .gitignore failed: {e}")
 
-    if Path(current_path / ".git/hooks/prepare-commit-msg").exists() and Path(current_path / ".git/hooks/prepare-commit-msg").is_file():
+    if Path(ROOT_LOCAL / ".git/hooks/prepare-commit-msg").exists() and Path(ROOT_LOCAL / ".git/hooks/prepare-commit-msg").is_file():
         try:
             subprocess.run(
                 [
                     "sed",
                     "-i",
                     r'/uv run python3 smart_commit.py \.git\/COMMIT_EDITMSG --config "autodocs\.yaml"/d',
-                    ".git/hooks/prepare-commit-msg"
+                    ROOT_LOCAL / ".git/hooks/prepare-commit-msg"
                 ],
                 check=True
             )
@@ -182,7 +226,7 @@ def remove(args):
             print(f"Removal of githook failed in .git/hooks/prepare-commit-msg: [{e}]")
 
 
-def run(args):
+def docs(args):
     try:
         docs = Docs()
         execution_layer = 0
@@ -230,16 +274,19 @@ def main():
 
     init_parser = subparser.add_parser('init', help='Initializes AutoDocs on a local environment.')
     init_parser.add_argument('-c', '--config-path', type=str, default='', help='Path to default autodocs.yaml config')
+    # init_parser.add_argument('-i', '--ignore-file', type=str, default='', help='Path to ignorefile')
     init_parser.add_argument('-g', '--git', action=argparse.BooleanOptionalAction, type=__str2bool, default=False, help='Include git support features like commit msg generation')
     init_parser.set_defaults(func=init)
 
-    run_parser = subparser.add_parser('run', help='Running the process')
+    run_parser = subparser.add_parser('docs', help='Generating a documentation')
     run_parser.add_argument('-c', '--source-code', type=str, default='', help='Relative path to code base')
     run_parser.add_argument('-d', '--docs-file', type=str, default='docs.md', help='Relative path of returned code base documentation')
     run_parser.add_argument('-s', '--session', type=str, default='', choices=sessions, help='Specify used session (default: last session)')
     run_parser.add_argument('-m', '--mode', type=str, default='all', choices=["all", "extract", "render"], help='')
     # TODO: add --vim-edit, if mode=extract, user can edit the API result before extract/render
-    run_parser.set_defaults(func=run)
+    run_parser.set_defaults(func=docs)
+
+    # TODO: add readme generation
 
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root')
     remove_parser.set_defaults(func=remove)
@@ -247,5 +294,24 @@ def main():
     args = parser.parse_args()
     args.func(args)
 
+    # TODO: fix request_stream bug
+    # TODO: create info of scanned content
+    # TODO: timeout min only 80sec???
+
+
 if __name__ == '__main__':
+    ensure_uv()
+
+    import argparse
+    import json
+    import os
+    from pathlib import Path
+    import shutil
+    import subprocess
+    import sys
+
+    from src.Docs import Docs
+    from src.config_parser import ConfigError, JSONConfig, YAMLConfig
+    from src.file_factory import FileReader, FileWriter, PromptReader
+
     main()
