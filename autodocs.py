@@ -295,7 +295,6 @@ def main():
     args.func(args)
 
     # TODO: fix request_stream bug
-    # TODO: create info of scanned content
     # TODO: timeout min only 80sec???
 
 
