@@ -154,8 +154,8 @@ def init(args):
         FileWriter(f"{str(ROOT_LOCAL)}/.autodocs/{config.config.autodocs.files_ignore_path}").write(
             f"{gitignore_content}\n\n{ignore_default_content}\n"
         )
-    except:
-        print("No .gitignore file found")
+    except Exception as e:
+        print(f"No .gitignore file found {e}")
         sys.exit(1)
 
     # add to .gitignore if in git env
@@ -255,6 +255,85 @@ def docs(args):
         print(f"{e}. Is the AutoDocs environment initialized? Run '... autodocs.py init'")
 
 
+def package_size(args):
+    from collections import defaultdict
+    import plotly.graph_objects as go
+    import humanize
+
+    ROOT_LOCAL = Path.cwd()
+    root_default = Path(__file__).resolve().parent
+
+    try:
+        with open(".autodocs/sended_content_report.json", "r") as r:
+            data = json.loads(r.read())
+    except FileNotFoundError as r:
+        print("Report file not found. Run `autodocs docs` first")
+        sys.exit(1)
+
+    rows = []
+
+    # node_id -> accumulated size
+    sizes = defaultdict(int)
+
+    # node_id -> parent_id
+    parents = {}
+
+    # node_id -> label
+    labels = {}
+
+    root = ROOT_LOCAL
+
+    for filename, info in data["detail"].items():
+        rel = Path(filename).relative_to(root)
+        parts = (root.name,) + rel.parts
+        parent = ""
+        size = info["file_size"]
+
+        for part in parts:
+            node = parent + "/" + part if parent else part
+
+            labels[node] = part
+            parents[node] = parent
+            sizes[node] += size
+
+            parent = node
+
+    labels_list = []
+    parents_list = []
+    values_list = []
+    ids_list = []
+
+    for node in sorted(labels):
+        ids_list.append(node)
+        labels_list.append(labels[node])
+        parents_list.append(parents[node])
+        values_list.append(sizes[node])
+
+    human_sizes = [
+        humanize.naturalsize(sizes[node], binary=True)
+        for node in sorted(labels)
+    ]
+
+    fig = go.Figure(go.Sunburst(
+        ids=ids_list,
+        labels=labels_list,
+        parents=parents_list,
+        values=values_list,
+        customdata=human_sizes,
+        branchvalues="total",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Size: %{customdata}<extra></extra>"
+        ),
+    ))
+
+    fig.update_layout(
+        margin=dict(t=20, l=20, r=20, b=20)
+    )
+
+    fig.show()
+
+
 def main():
     sessions = []
     try:
@@ -291,9 +370,13 @@ def main():
     remove_parser = subparser.add_parser('remove', help='Removes all related autodocs files and directories from project root')
     remove_parser.set_defaults(func=remove)
 
+    report_parser = subparser.add_parser('report', help='')
+    report_parser.set_defaults(func=package_size)
+
     args = parser.parse_args()
     args.func(args)
 
+    # TODO: make scalable (smaller summarization)
     # TODO: fix request_stream bug
     # TODO: timeout min only 80sec???
 

@@ -114,6 +114,7 @@ class Docs:
             with open(target_file, "w", encoding="utf-8") as f:
                 for chunk in result:
                     f.write(chunk)
+                    f.flush()
         except ValueError as err:
             print(err)
 

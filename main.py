@@ -1,14 +1,15 @@
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from time import sleep
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 
-from src.config_parser import YAMLConfig
+from src.config_parser import JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, PUMLWriter, PromptReader, RecursiveSubdirectories, FileWriter
 from src.git_master import GitMaster
+from src.llm_processing_pipeline import Code, Text, Think, event_consumer, line_assembler, parser
 from src.rendering import PlantUMLRendering
 from src.plantuml_converter import PlantUMLConverter
 from src.request import LLM_API
@@ -85,31 +86,69 @@ def main():
         sleep(yaml.config.llm_service.api.request_delay_seconds)
 
 
-def test():
+def llm_test():
+    yaml = YAMLConfig('tests/configs/autodocs.yaml')
 
-    tag="UML"
-    target_file = f".autodocs/llm_logs/2026-08-03_09-47-04.md"
-    # puml_path = f".autodocs/self.PUML_DIR}/{local_session}"
+    code = FileReader(target_path="src/schemas/umlblock_schema.py").text
+    api = LLM_API(config=yaml.config, model="MiniMaxAI/MiniMax-M3-MXFP8")
 
-    extractor = Extraction(FileReader(target_path=target_file).text)
-    umls, text = extractor.extractPlantUML(tag_infix=tag)
-
-    paths, names = extractor.createPaths(
-        keys=list(umls.keys()),
-        tag=tag,
-        path=""
+    stream = api.request_stream(
+        rule=PromptReader(target_path="prompts/grammar2.md", data={"language": "python"}).getResolved(),
+        prompt=code
     )
 
-    think_text, text = extractor.extractThinkTagPrefix(text)
+    chunks = []
+    for chunk in stream:
+        print(chunk, end="", flush=True)
+        chunks.append(chunk)
 
-    print("#################")
-    print(think_text)
-    print("#################")
+
+    _, text = Extraction("").extractThinkTagPrefix(str("".join(chunks)).replace("<|open|>", ""))
+
     print(text)
-    print("#################")
 
-    print(re.findall(r'.*\</mm:think\>', "</mm:think>"))
+    try:
+        parser = Lark(
+            grammar=text,
+            start="program",
+            parser="earley",
+            ambiguity='explicit'
+        )
+        tree = parser.parse(code)
+
+        print("\n\n")
+        print(tree.pretty())
+    except GrammarError as e:
+        print(f"ERROR grammar is faulty: {e}")
+    except UnexpectedToken as t:
+        print(f"ERROR made an UnexpectedToken: {t}")
+    except UnexpectedCharacters as c :
+        print(f"ERROR made an UnexpectedCharacters: {c}")
+
+
+def get_chars(file):
+    with open(file, "r") as f:
+        while True:
+            ch = f.read(1)
+            if ch == "":
+                break
+            yield ch
+
+def get_chunks(file, size=5):
+    with open(file, "r") as f:
+        while chunk := f.read(size):
+            yield chunk
+
+def extraction_stream():
+    with open(".autodocs/llm_logs/2026-08-05_15-46-44_text.md", "w") as text_result_file, open(".autodocs/llm_logs/2026-08-05_15-46-44_think.md", "w") as think_file:
+        event_consumer(parser(
+            line_assembler(
+                get_chunks(".autodocs/llm_logs/2026-08-05_15-46-44.md")
+            )
+        ), think_file, text_result_file)
+
 
 if __name__ == "__main__":
-    main()
-    # test()
+    # main()
+    # llm_test()
+    extraction_stream()

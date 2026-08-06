@@ -106,7 +106,8 @@ class LLM_API:
                             yield event.delta
 
                         case "response.output_text.done":
-                            print("\nText complete")
+                            # print("\nText complete")
+                            pass
 
                         case "response.completed":
                             response = event.response

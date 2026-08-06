@@ -1,4 +1,5 @@
 import re
+from typing import Generator
 
 from lark import Lark, Transformer
 
@@ -139,3 +140,5 @@ class Extraction:
             names.append(uml_name)
 
         return results, names
+
+
