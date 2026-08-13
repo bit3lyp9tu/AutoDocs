@@ -31,6 +31,36 @@ class LLM_API:
             self.model = model
 
 
+    def check_model_status(self, model, hasPermission=True) -> tuple[bool, str, float]:
+        if not self.config.llm_service.status.pre_check_connection or not hasPermission:
+            return (False, "", 0)
+
+        try:
+            response = requests.get(self.config.llm_service.status.url).json()
+        except requests.exceptions.RequestException as e:
+            print(f"Connection to LLM status page failed: {e}")
+            return (False, "", 0)
+
+        try:
+            data = ScadsAIModelsStatus.model_validate(response)
+        except ValidationError as e:
+            print(e.errors())
+            return (False, "", 0)
+
+        if self.config.llm_service.status.type in data.models.keys():
+            for i in data.models[self.config.llm_service.status.type]:
+                if i.real_name==model:
+                    return (
+                        i.state.lower()=="up",
+                        i.state,
+                        i.time_taken
+                    )
+            else:
+                raise ValueError("Model not in list")
+        else:
+            raise ValueError("LLM type is not in list")
+
+
     def request(self, rule, prompt):
         client = OpenAI(
             base_url=self.base_url,
@@ -144,33 +174,14 @@ class LLM_API:
             return ""
 
 
-    def check_model_status(self, model, hasPermission=True) -> tuple[bool, str, float]:
-        if not self.config.llm_service.status.pre_check_connection or not hasPermission:
-            return (False, "", 0)
+    def request_contextualized_stream(self):
 
-        try:
-            response = requests.get(self.config.llm_service.status.url).json()
-        except requests.exceptions.RequestException as e:
-            print(f"Connection to LLM status page failed: {e}")
-            return (False, "", 0)
+        # System instructions
+        # Conversation summary
+        # Last 10 messages
+        # Relevant retrieved messages
+        # Current user message
 
-        try:
-            data = ScadsAIModelsStatus.model_validate(response)
-        except ValidationError as e:
-            print(e.errors())
-            return (False, "", 0)
-
-        if self.config.llm_service.status.type in data.models.keys():
-            for i in data.models[self.config.llm_service.status.type]:
-                if i.real_name==model:
-                    return (
-                        i.state.lower()=="up",
-                        i.state,
-                        i.time_taken
-                    )
-            else:
-                raise ValueError("Model not in list")
-        else:
-            raise ValueError("LLM type is not in list")
+        pass
 
 

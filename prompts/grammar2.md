@@ -11,3 +11,4 @@ Follow the EBNF syntax for it:
 - do not forget to account for whitespaces
 - do not return it as markdown
 - do not end the line with an `;`
+- at the end of the grammar add %import common.WS and %ignore WS
