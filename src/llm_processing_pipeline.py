@@ -1,13 +1,18 @@
 
 from dataclasses import dataclass
+from io import TextIOWrapper
+from pathlib import Path
 import re
 from time import sleep
 from typing import Generator
+
+from src.rendering import PlantUMLRendering
 
 
 @dataclass
 class Text:
     content: str
+    isTag: bool
 
 @dataclass
 class Code:
@@ -52,14 +57,14 @@ def parser_tag(stream: Generator[str], opened_tag=r"\<mm:think\>", closed_tag=r"
         if in_think_tag and len(close_tag) > 0:
             after_closed_tag = re.findall(r'(?<={}).*'.format(closed_tag), line)
             if len(after_closed_tag) > 0:
-                yield Text(after_closed_tag[0])
+                yield Text(after_closed_tag[0], False)
 
             in_think_tag = False
             think_text.clear()
             continue
 
         if not in_think_tag:
-            yield Text(line)
+            yield Text(line, False)
 
 
 def tag_extraction(model, stream, name_tag):
@@ -93,10 +98,11 @@ def parser(stream: Generator[str], opened_tag=r"\<mm:think\>", closed_tag=r"\</m
 
         if in_think_tag and len(close_tag) > 0:
             after_closed_tag = re.findall(r'(?<={}).*'.format(closed_tag), line)
-            if len(after_closed_tag) > 0:
-                yield Text(after_closed_tag[0])
-
             match_ref = re.findall(name_tag, line)
+
+            if len(after_closed_tag) > 0:
+                yield Text(after_closed_tag[0], len(match_ref) > 0)
+
             if len(match_ref) > 0:
                 reference_tag = match_ref[0]
 
@@ -123,29 +129,44 @@ def parser(stream: Generator[str], opened_tag=r"\<mm:think\>", closed_tag=r"\</m
                 reference_tag = ""
             continue
 
+        match_ref = re.findall(name_tag, line)
         if in_code:
             code.append(line)
         else:
             if not in_think_tag:
-                yield Text(line)
+                yield Text(line, len(match_ref) > 0)
 
-        match_ref = re.findall(name_tag, line)
         if len(match_ref) > 0:
             reference_tag = match_ref[0]
 
 
-def event_consumer(stream: Generator[Think | Text | Code], session_path, think_file, text_result_file):
+def event_consumer(config, stream: Generator[Think | Text | Code], name: str, puml_path: Path, img_path: Path, think_file: TextIOWrapper, text_result_file: TextIOWrapper):
+    tag = "UML"
+
     for line in stream:
+        tag_name = line.content.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "").replace("\n", "")
+
         if type(line) == Think:
             think_file.write(line.content)
             think_file.flush()
+
         if type(line) == Text:
-            text_result_file.write(line.content)
+            if line.isTag:
+                img_link = str(img_path / f"{name}-{tag_name}.png")
+                md_img = f"![{tag_name}]({img_link})"
+                text_result_file.write(md_img)
+            else:
+                text_result_file.write(line.content)
             text_result_file.flush()
+
         if type(line) == Code:
             if line.reverence_tag and line.language == "plantuml":
-                file_name = line.reverence_tag.replace("{{", "").replace("}}", "")
-                file_path = f"{session_path}/{file_name}-new.puml"
+                file_name = line.reverence_tag.replace("}}", "").replace(str("{{TAG_" + tag + "_"), "").replace("\n", "")
+                file_path = puml_path / f"{name}-{file_name}.puml"
 
                 with open(file_path, "w") as f:
                     f.write(line.content)
+                    f.flush()
+
+                plantuml = PlantUMLRendering(config, file_path)
+                plantuml.render(str(img_path).replace(".puml", ".png"))

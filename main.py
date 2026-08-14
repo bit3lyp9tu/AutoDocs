@@ -144,15 +144,15 @@ def get_chunks(file, size=5):
         while chunk := f.read(size):
             yield chunk
 
-def extraction_stream():
-    session = "2026-08-05_15-46-44"
+# def extraction_stream():
+#     session = "2026-08-05_15-46-44"
 
-    with open(f".autodocs/llm_logs/{session}_text.md", "w") as text_result_file, open(f".autodocs/llm_logs/{session}_think.md", "w") as think_file:
-        event_consumer(parser(
-            line_assembler(
-                get_chunks(f".autodocs/llm_logs/{session}.md")
-            )
-        ), f".autodocs/puml/{session}", think_file, text_result_file)
+#     with open(f".autodocs/llm_logs/{session}_text.md", "w") as text_result_file, open(f".autodocs/llm_logs/{session}_think.md", "w") as think_file:
+#         event_consumer(parser(
+#             line_assembler(
+#                 get_chunks(f".autodocs/llm_logs/{session}.md")
+#             )
+#         ), f".autodocs/puml/{session}", think_file, text_result_file)
 
 
 def llm_conversation():

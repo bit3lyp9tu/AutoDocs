@@ -1,14 +1,18 @@
 
+from contextlib import contextmanager
 from datetime import datetime
 import os
 import json
 from pathlib import Path
+from time import sleep
 
 import humanize
+from openai import PermissionDeniedError
 
 from src.config_parser import JSONConfig, YAMLConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, FileWriter, PUMLWriter, RecursiveSubdirectories
+from src.llm_processing_pipeline import event_consumer, line_assembler, tag_extraction
 from src.rendering import PlantUMLRendering, PrintMode
 from src.request import LLM_API
 from src.schemas.setup_schema import MetaData, Session
@@ -19,6 +23,17 @@ def convert_bytes(num):
         if num < 1024.0:
             return "%3.1f %s" % (num, x)
         num /= 1024.0
+
+def retry(func, attempts=10, wait=1, exceptions=(Exception,), message="Process failed, retry..."):
+    for attempt in range(attempts):
+        try:
+            return func()
+        except exceptions:
+            if attempt < attempts - 1:
+                print(message)
+                sleep(wait)
+            else:
+                raise
 
 class Docs:
 
@@ -36,6 +51,80 @@ class Docs:
         self.setup_file = setup_file
         self.setup = JSONConfig(setup_file)
         self.config = YAMLConfig(self.setup.config.config_path).config
+
+
+    def createContent_Large(self, source_code_path: str, session: str = "", print_short_report: bool = True):
+        current_session = session if session else str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+
+        with self.setup.open() as setup:
+            if current_session not in self.setup.config.sessions:
+                setup.sessions[current_session] = Session(meta_data=MetaData(), content=[])
+
+        os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.PUML_DIR), current_session))
+        os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.IMG_DIR), current_session))
+
+        puml_path = Path(self.setup.config.autodocs_path) / self.PUML_DIR / current_session
+        img_path = Path(self.setup.config.autodocs_path) / self.IMG_DIR / current_session
+
+        directory = Path(self.setup.config.root_path) / source_code_path
+        try:
+            file_names = RecursiveSubdirectories(
+                Path(self.setup.config.root_path),
+                directory,
+                blacklist_path=f".autodocs/{self.config.autodocs.files_ignore_path}"
+            ).paths
+        except FileNotFoundError as e:
+            raise FileNotFoundError("A file-ignore file is required") from e
+
+        api = LLM_API(config=self.config, model=self.config.autodocs.model)
+        for i in range(len(file_names)):
+            file = file_names[i]
+            full_path = directory / file
+
+            with open(full_path) as f:
+                text = f.read()
+
+            print(f"Summarizing [{full_path}]... {i+1}/{len(file_names)}")
+            try:
+                if text:
+                    result = retry(
+                        lambda: api.request_stream(
+                            rule=self.setup.config.resolved_prompt,
+                            prompt=file+"\n"+text
+                        ),
+                        wait=10,
+                        exceptions=(PermissionDeniedError,)
+                    )
+                else:
+                    result = None
+
+                file_name_tag = file.replace(".", "_").replace("/", "_").replace("\n", "")
+                target_thinking_file = f".autodocs/{self.LLM_DIR}/{current_session}-{file_name_tag}-thinking.md"
+                target_file = f".autodocs/{self.LLM_DIR}/{current_session}-{file_name_tag}.md"
+
+                with open(target_thinking_file, "w") as think_file, open(target_file, "w") as text_result_file:
+                    event_consumer(
+                        self.config,
+                        tag_extraction(
+                            # TODO: possible bug, self.config.autodocs.model is not always the used model (see llm_service.alt_models)
+                            self.config.autodocs.model,
+                            line_assembler(result),
+                            name_tag=r'\{\{TAG_UML_\w+\}\}'
+                        ),
+                        file_name_tag,
+                        puml_path,
+                        img_path,
+                        think_file,
+                        text_result_file
+                    )
+
+            except ValueError as err:
+                print(err)
+
+            sleep(1)
+
+        with self.setup.open() as setup:
+            setup.sessions[current_session].meta_data = MetaData(**api.meta_data)
 
 
     def createContent(self, source_code_path: str, session: str = "", print_short_report: bool = True):
@@ -122,6 +211,7 @@ class Docs:
             setup.sessions[current_session].meta_data = MetaData(**api.meta_data)
 
 
+    # TODO: use dedicated llm_processing_pipeline functions for faster streaming
     def createPUML(self, docs_file: str = "docs.md", session: str = ""):
         local_session = self.__validateSession(session)
 

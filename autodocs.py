@@ -241,15 +241,16 @@ def docs(args):
 
         if execution_layer <= 0:
             print("Requesting LLM docs...")
-            docs.createContent(args.source_code, args.session)
+            # docs.createContent(args.source_code, args.session)
+            docs.createContent_Large(args.source_code, args.session)
 
-        if execution_layer <= 1:
-            print("Creating PUML diagrams...")
-            docs.createPUML(args.docs_file, args.session)
+        # if execution_layer <= 1:
+        #     print("Creating PUML diagrams...")
+        #     docs.createPUML(args.docs_file, args.session)
 
-        if execution_layer <= 2:
-            print("Render PUML diagrams...")
-            docs.renderPUML(args.session)
+        # if execution_layer <= 2:
+        #     print("Render PUML diagrams...")
+        #     docs.renderPUML(args.session)
 
     except FileNotFoundError as e:
         print(f"{e}. Is the AutoDocs environment initialized? Run '... autodocs.py init'")
