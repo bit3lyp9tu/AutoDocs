@@ -15,9 +15,13 @@ dependencies = [
     "pyyaml>=6.0.3",
     "requests>=2.34.2",
     "types-pyyaml>=6.0.12.20260518",
+    "llm_api_toolcollection"
 ]
 
 [dependency-groups]
 dev = [
     "debugpy>=1.8.21",
 ]
+
+[tool.uv.sources]
+llm_api_toolcollection = { path = "libs/llm_api_toolcollection", editable = true }

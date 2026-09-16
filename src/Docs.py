@@ -1,5 +1,3 @@
-
-from contextlib import contextmanager
 from datetime import datetime
 import os
 import json
@@ -9,12 +7,17 @@ from time import sleep
 import humanize
 from openai import PermissionDeniedError
 
-from src.config_parser import JSONConfig, YAMLConfig
+from libs.llm_api_toolcollection.src.config_parser import YAMLConfig
+from libs.llm_api_toolcollection.src.llm_processing_pipeline import line_assembler, tag_extraction
+from libs.llm_api_toolcollection.src.api import LLM_API
+
+from src.config_parser import JSONConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, FileWriter, PUMLWriter, RecursiveSubdirectories
-from src.llm_processing_pipeline import event_consumer, line_assembler, tag_extraction
+from src.llm_processing_pipeline import event_consumer
 from src.rendering import PlantUMLRendering, PrintMode
-from src.request import LLM_API
+
+from src.schemas.config_model import ConfigSchema
 from src.schemas.setup_schema import MetaData, Session
 
 
@@ -50,7 +53,7 @@ class Docs:
 
         self.setup_file = setup_file
         self.setup = JSONConfig(setup_file)
-        self.config = YAMLConfig(self.setup.config.config_path).config
+        self.config = YAMLConfig(ConfigSchema, config_path=self.setup.config.config_path).config
 
 
     def createContent_Large(self, source_code_path: str, session: str = "", print_short_report: bool = True):
@@ -61,6 +64,7 @@ class Docs:
                 setup.sessions[current_session] = Session(meta_data=MetaData(), content=[])
 
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.PUML_DIR), current_session))
+        os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.LLM_DIR), current_session))
         os.mkdir(os.path.join((Path(self.setup.config.autodocs_path) / self.IMG_DIR), current_session))
 
         puml_path = Path(self.setup.config.autodocs_path) / self.PUML_DIR / current_session
@@ -81,6 +85,23 @@ class Docs:
             file = file_names[i]
             full_path = directory / file
 
+            sanitized_file_name = file.replace(".", "-").replace("/", "_").replace("\n", "")
+            target_thinking_file = f".autodocs/{self.LLM_DIR}/{current_session}/{sanitized_file_name}-thinking.md"
+            target_file = f".autodocs/{self.LLM_DIR}/{current_session}/{sanitized_file_name}.md"
+
+            # print(Path(self.setup.config.root_path) / target_file)
+            # if Path(Path(self.setup.config.root_path) / target_file).exists() or Path(Path(self.setup.config.root_path) / target_thinking_file).exists():
+            #     with open(target_file) as tf, open(target_thinking_file) as ttf:
+            #         print(tf.readline())
+            #         print(ttf.readline())
+
+            #         if tf.readline() not in ["", "\n"] and ttf.readline() not in ["", "\n"]:
+            #             print(f"File [{full_path}] already exists, skipping to next...")
+            #             continue
+
+            os.mkdir(os.path.join(Path(self.setup.config.autodocs_path) / self.PUML_DIR / current_session, sanitized_file_name))
+            os.mkdir(os.path.join(Path(self.setup.config.autodocs_path) / self.IMG_DIR / current_session, sanitized_file_name))
+
             with open(full_path) as f:
                 text = f.read()
 
@@ -90,28 +111,26 @@ class Docs:
                     result = retry(
                         lambda: api.request_stream(
                             rule=self.setup.config.resolved_prompt,
-                            prompt=file+"\n"+text
+                            prompt=file+"\n"+text,
+                            timeout=180
                         ),
                         wait=10,
-                        exceptions=(PermissionDeniedError,)
+                        exceptions=(PermissionDeniedError, ValueError)
                     )
                 else:
-                    result = None
-
-                file_name_tag = file.replace(".", "_").replace("/", "_").replace("\n", "")
-                target_thinking_file = f".autodocs/{self.LLM_DIR}/{current_session}-{file_name_tag}-thinking.md"
-                target_file = f".autodocs/{self.LLM_DIR}/{current_session}-{file_name_tag}.md"
+                    continue
 
                 with open(target_thinking_file, "w") as think_file, open(target_file, "w") as text_result_file:
                     event_consumer(
                         self.config,
+                        Path(self.setup.config.root_path),
                         tag_extraction(
                             # TODO: possible bug, self.config.autodocs.model is not always the used model (see llm_service.alt_models)
                             self.config.autodocs.model,
                             line_assembler(result),
                             name_tag=r'\{\{TAG_UML_\w+\}\}'
                         ),
-                        file_name_tag,
+                        sanitized_file_name,
                         puml_path,
                         img_path,
                         think_file,
@@ -198,7 +217,8 @@ class Docs:
         try:
             result = api.request_stream(
                 rule=self.setup.config.resolved_prompt,
-                prompt=''.join(contents)
+                prompt=''.join(contents),
+                timeout=180
             )
             with open(target_file, "w", encoding="utf-8") as f:
                 for chunk in result:

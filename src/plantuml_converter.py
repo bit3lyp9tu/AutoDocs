@@ -1,8 +1,9 @@
 import re
 
+from libs.llm_api_toolcollection.src.api import LLM_API
+
 from src.schemas.config_model import ConfigSchema
 from src.file_factory import FileReader, FileWriter
-from src.request import LLM_API
 
 
 class PlantUMLConverter:
@@ -71,7 +72,7 @@ class PlantUMLConverter:
 
         result = []
         try:
-            raw_result = api.request(rule=prompt, prompt=text)
+            raw_result = api.request(rule=prompt, prompt=text, timeout=180)
             result = self._split_plantuml_sections(raw_result)
         except ValueError as err:
             print(err)

@@ -2,9 +2,10 @@ from pathlib import Path
 
 from argparse import ArgumentParser
 
+from libs.llm_api_toolcollection.src.api import LLM_API
+
 from src.config_parser import YAMLConfig
 from src.git_master import GitMaster
-from src.request import LLM_API
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
 
     result = ""
     try:
-        result = api.request(rule=prompt, prompt=git_diff)
+        result = api.request(rule=prompt, prompt=git_diff, timeout=180)
     except ValueError as err:
         print(err)
 

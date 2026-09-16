@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from time import sleep
+from typing import TypeVar
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
 
-from src.llm_processing_pipeline import Text, line_assembler, parser_tag, tag_extraction
-from src.request import LLM_API
+from libs.llm_api_toolcollection.src.llm_processing_pipeline import Text, line_assembler, tag_extraction
+from libs.llm_api_toolcollection.src.api import LLM_API
+
 from src.schemas.config_model import ConfigSchema
 
 
@@ -22,8 +24,9 @@ class Application(Roles):
 class LLM(Roles):
     pass
 
+T = TypeVar("T", bound=ConfigSchema)
 class Agent:
-    def __init__(self, config: ConfigSchema, rule, model="MiniMaxAI/MiniMax-M3-MXFP8") -> None:
+    def __init__(self, config: T, rule, model="MiniMaxAI/MiniMax-M3-MXFP8") -> None:
         self.config = config
         self.rule = rule
         self.api = LLM_API(config, model=model)
@@ -65,7 +68,8 @@ class Agent:
                 response = self.api.request_stream(
                     rule=rule_prefix+"\n"+self.rule,
                     prompt=full_input,
-                    check_for_alt_models=False
+                    check_for_alt_models=False,
+                    timeout=180
                 )
             except BadRequestError as e:
                 error = e.body.get("error", {}) if isinstance(e.body, dict) else {}
@@ -142,7 +146,8 @@ class Agent:
             response = self.api.request_stream(
                 rule="Summarize the given conversation. Is is for LLM context.",
                 prompt=f"Conversation: \n{self.getConversation()}",
-                check_for_alt_models=False
+                check_for_alt_models=False,
+                timeout=180
             )
             return ''.join(response)
 
