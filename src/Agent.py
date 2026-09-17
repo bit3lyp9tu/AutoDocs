@@ -5,8 +5,8 @@ from typing import TypeVar
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
 
-from libs.llm_api_toolcollection.src.llm_processing_pipeline import Text, line_assembler, tag_extraction
-from libs.llm_api_toolcollection.src.api import LLM_API
+from llm_api_toolcollection.llm_processing_pipeline import Text, line_assembler, tag_extraction
+from llm_api_toolcollection.api import LLM_API
 
 from src.schemas.config_model import ConfigSchema
 

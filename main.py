@@ -2,12 +2,11 @@ from time import sleep
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
-from openai.types import AllModels
 
-from libs.llm_api_toolcollection.src.api import LLM_API
-from libs.llm_api_toolcollection.src.schemas.config_schema import LLMService, LLMStatus, find_child
+from llm_api_toolcollection.api import LLM_API
+from llm_api_toolcollection.schemas.config_schema import LLMStatus, find_child
 
-from libs.llm_api_toolcollection.src.llm_processing_pipeline import line_assembler, tag_extraction
+from llm_api_toolcollection.llm_processing_pipeline import line_assembler, tag_extraction
 from src.Agent import Agent
 from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction

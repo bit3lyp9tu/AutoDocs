@@ -3,7 +3,7 @@
 import os
 import sys
 
-from libs.llm_api_toolcollection.src.config_parser import ConfigError
+from llm_api_toolcollection.config_parser import ConfigError
 
 from src.schemas.config_model import ConfigSchema
 

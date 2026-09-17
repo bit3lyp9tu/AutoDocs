@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from pathlib import Path
 
-from libs.llm_api_toolcollection.src.schemas.config_schema import LLMService, Logs, Prompts, SysPrompt
+from llm_api_toolcollection.schemas.config_schema import LLMService, Logs, Prompts, SysPrompt
 
 
 def find_project_root(start: Path) -> Path:

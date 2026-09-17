@@ -7,9 +7,9 @@ from time import sleep
 import humanize
 from openai import PermissionDeniedError
 
-from libs.llm_api_toolcollection.src.config_parser import YAMLConfig
-from libs.llm_api_toolcollection.src.llm_processing_pipeline import line_assembler, tag_extraction
-from libs.llm_api_toolcollection.src.api import LLM_API
+from llm_api_toolcollection.config_parser import YAMLConfig
+from llm_api_toolcollection.llm_processing_pipeline import line_assembler, tag_extraction
+from llm_api_toolcollection.api import LLM_API
 
 from src.config_parser import JSONConfig
 from src.extraction_factory import Extraction
@@ -53,7 +53,7 @@ class Docs:
 
         self.setup_file = setup_file
         self.setup = JSONConfig(setup_file)
-        self.config = YAMLConfig(ConfigSchema, config_path=self.setup.config.config_path).config
+        self.config: ConfigSchema = YAMLConfig(ConfigSchema, config_path=self.setup.config.config_path).config
 
 
     def createContent_Large(self, source_code_path: str, session: str = "", print_short_report: bool = True):

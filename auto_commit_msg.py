@@ -2,7 +2,7 @@ from pathlib import Path
 
 from argparse import ArgumentParser
 
-from libs.llm_api_toolcollection.src.api import LLM_API
+from llm_api_toolcollection.api import LLM_API
 
 from src.config_parser import YAMLConfig
 from src.git_master import GitMaster

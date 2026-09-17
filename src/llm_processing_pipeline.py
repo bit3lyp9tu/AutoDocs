@@ -2,7 +2,7 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Generator
 
-from libs.llm_api_toolcollection.src.llm_processing_pipeline import Code, Text, Think
+from llm_api_toolcollection.llm_processing_pipeline import Code, Text, Think
 
 from src.rendering import PlantUMLRendering
 
