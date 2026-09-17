@@ -1,22 +1,17 @@
-import json
-from pathlib import Path, PurePosixPath
-import re
 from time import sleep
-from typing import Generator, Literal
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
 
+from libs.llm_api_toolcollection.src.api import LLM_API
+
+from libs.llm_api_toolcollection.src.llm_processing_pipeline import line_assembler, tag_extraction
 from src.Agent import Agent
-from src.config_parser import JSONConfig, YAMLConfig
+from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction
-from src.file_factory import FileReader, PUMLWriter, PromptReader, RecursiveSubdirectories, FileWriter
-from src.git_master import GitMaster
-from src.llm_processing_pipeline import Code, Text, Think, event_consumer, line_assembler, parser, tag_extraction
-from src.rendering import PlantUMLRendering
-from src.plantuml_converter import PlantUMLConverter
-from src.request import LLM_API
-from src.terminal_master import TerminalMaster
+from src.file_factory import FileReader, PromptReader, FileWriter
+from src.llm_processing_pipeline import Code, event_consumer
+from src.schemas.config_model import ConfigSchema
 
 
 def main():
@@ -40,7 +35,7 @@ def main():
     # source = "tests/example_data/db_schema.py"
     # target_path = "tests/results/benchmarks/entity_relation_diagram/"
 
-    yaml = YAMLConfig('tests/configs/autodocs.yaml')
+    yaml = YAMLConfig(ConfigSchema, 'tests/configs/autodocs.yaml')
 
     prompt = PromptReader(
         "prompts/docs_summary.md",
@@ -60,7 +55,8 @@ def main():
         api = LLM_API(config=yaml.config, model=model_list[i])
         result = api.request(
             rule=PromptReader(target_path="prompts/grammar2.md", data={"language": "python"}).getResolved(),
-            prompt=code
+            prompt=code,
+            timeout=180
         )
         # for chunk in stream:
         #      print(chunk, end="", flush=True)
@@ -90,14 +86,15 @@ def main():
 
 
 def llm_test():
-    yaml = YAMLConfig('tests/configs/autodocs.yaml')
+    yaml = YAMLConfig(ConfigSchema, 'tests/configs/autodocs.yaml')
 
     code = FileReader(target_path="src/schemas/umlblock_schema.py").text
     api = LLM_API(config=yaml.config, model="moonshotai/Kimi-K3")
 
     stream = api.request_stream(
         rule=PromptReader(target_path="prompts/grammar2.md", data={"language": "python"}).getResolved(),
-        prompt=code
+        prompt=code,
+        timeout=180
     )
 
     chunks = []
@@ -177,7 +174,7 @@ class Document(BaseModel):
     with open("tests/example_data/task_manager.py") as f:
         code2 = f.read()
 
-    yaml = YAMLConfig('tests/configs/autodocs.yaml')
+    yaml = YAMLConfig(ConfigSchema, 'tests/configs/autodocs.yaml')
     # models = [
     #     "google/gemma-4-26B-A4B-it",
     #     "google/gemma-4-31B-it",
@@ -310,7 +307,8 @@ def code_splitter(config, model, code):
         response = api.request_stream(
             rule=rule,
             prompt=code,
-            check_for_alt_models=False
+            check_for_alt_models=False,
+            timeout=180
         )
     except BadRequestError as e:
         error = e.body.get("error", {}) if isinstance(e.body, dict) else {}

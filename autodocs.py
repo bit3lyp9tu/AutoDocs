@@ -3,6 +3,11 @@
 import os
 import sys
 
+from libs.llm_api_toolcollection.src.config_parser import ConfigError
+
+from src.schemas.config_model import ConfigSchema
+
+
 def ensure_uv():
     # from: https://github.com/NormanTUD/roARM-m2/blob/main/bootstrap.py (somewhat modified, without dialout())
 
@@ -78,7 +83,7 @@ def init(args):
         sys.exit(1)
 
     try:
-        config = YAMLConfig(config_path)
+        config = YAMLConfig(ConfigSchema, config_path)
     except FileNotFoundError as r:
         print(f"File not found: {r}")
         sys.exit(1)
@@ -394,7 +399,7 @@ if __name__ == '__main__':
     import sys
 
     from src.Docs import Docs
-    from src.config_parser import ConfigError, JSONConfig, YAMLConfig
+    from src.config_parser import JSONConfig, YAMLConfig
     from src.file_factory import FileReader, FileWriter, PromptReader
 
     main()
