@@ -2,8 +2,10 @@ from time import sleep
 
 from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
+from openai.types import AllModels
 
 from libs.llm_api_toolcollection.src.api import LLM_API
+from libs.llm_api_toolcollection.src.schemas.config_schema import LLMService, LLMStatus, find_child
 
 from libs.llm_api_toolcollection.src.llm_processing_pipeline import line_assembler, tag_extraction
 from src.Agent import Agent
@@ -330,5 +332,9 @@ if __name__ == "__main__":
     # main()
     # llm_test()
     # extraction_stream()
-    llm_conversation()
+    # llm_conversation()
     # parser_test()
+
+    config = YAMLConfig(ConfigSchema, "./tests/configs/autodocs.yaml")
+    status: LLMStatus = find_child(config.config, LLMStatus)
+    print(status.url)

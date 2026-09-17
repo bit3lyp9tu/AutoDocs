@@ -12,6 +12,7 @@ llm_service:
     url: 'https://llm.scads.ai/status/state.json'
   alt_models:
     - 'google/gemma-4-31B-it'
+    - 'meta-llama/Llama-3.3-70B-Instruct'
 autodocs:
   files_ignore_path: '.autodocs-ignore'
   model: MiniMaxAI/MiniMax-M3-MXFP8
