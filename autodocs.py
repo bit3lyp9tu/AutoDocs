@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+import argparse
+import json
 import os
+from pathlib import Path
+import shutil
+import subprocess
 import sys
-
-from llm_api_toolcollection.config_parser import ConfigError
-
-from src.schemas.config_model import ConfigSchema
 
 
 def ensure_uv():
@@ -390,16 +391,14 @@ def main():
 if __name__ == '__main__':
     ensure_uv()
 
-    import argparse
-    import json
-    import os
-    from pathlib import Path
-    import shutil
-    import subprocess
-    import sys
+    from llm_api_toolcollection.config_parser import YAMLConfig, ConfigError
 
     from src.Docs import Docs
-    from src.config_parser import JSONConfig, YAMLConfig
+    from src.config_parser import JSONConfig
     from src.file_factory import FileReader, FileWriter, PromptReader
+    from src.schemas.config_model import ConfigSchema
 
-    main()
+    try:
+        main()
+    except KeyboardInterrupt as k:
+        print("\nAutodocs exited")

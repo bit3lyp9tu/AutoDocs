@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import json
 
-from llm_api_toolcollection.config_parser import ConfigBase, YAMLConfig
+from llm_api_toolcollection.config_parser import ConfigBase
 
 from src.schemas.setup_schema import SetupSchema
 

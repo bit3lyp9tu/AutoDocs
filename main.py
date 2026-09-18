@@ -4,11 +4,11 @@ from lark import GrammarError, Lark, UnexpectedCharacters, UnexpectedToken
 from openai import BadRequestError
 
 from llm_api_toolcollection.api import LLM_API
+from llm_api_toolcollection.config_parser import YAMLConfig
+from llm_api_toolcollection.llm_processing_pipeline import line_assembler, tag_extraction
 from llm_api_toolcollection.schemas.config_schema import LLMStatus, find_child
 
-from llm_api_toolcollection.llm_processing_pipeline import line_assembler, tag_extraction
 from src.Agent import Agent
-from src.config_parser import YAMLConfig
 from src.extraction_factory import Extraction
 from src.file_factory import FileReader, PromptReader, FileWriter
 from src.llm_processing_pipeline import Code, event_consumer
